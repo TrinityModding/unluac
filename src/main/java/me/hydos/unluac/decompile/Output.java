@@ -62,9 +62,7 @@ public class Output {
 
     public void print(String s) {
         start();
-        for (var i = 0; i < s.length(); i++) {
-            out.print((byte) s.charAt(i));
-        }
+        out.print(s);
         position += s.length();
     }
 

@@ -1,4 +1,4 @@
-package me.hydos.unluac.test;
+package me.hydos.unluac.test.legacy;
 
 import java.io.PrintStream;
 import java.util.ArrayList;

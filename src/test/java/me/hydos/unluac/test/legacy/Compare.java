@@ -1,4 +1,4 @@
-package me.hydos.unluac.test;
+package me.hydos.unluac.test.legacy;
 
 import me.hydos.unluac.Configuration;
 import me.hydos.unluac.parse.BHeader;

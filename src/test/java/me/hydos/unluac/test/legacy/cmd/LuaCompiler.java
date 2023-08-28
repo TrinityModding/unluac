@@ -1,10 +1,8 @@
-package me.hydos.unluac.test.cmd;
+package me.hydos.unluac.test.legacy.cmd;
 
-import me.hydos.unluac.test.LuaSpec;
+import me.hydos.unluac.test.legacy.LuaSpec;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;

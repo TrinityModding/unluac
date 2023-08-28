@@ -1,4 +1,4 @@
-package me.hydos.unluac.test;
+package me.hydos.unluac.test.legacy;
 
 public class UnLuaCTest {
 

@@ -1,9 +1,9 @@
-package me.hydos.unluac.test;
+package me.hydos.unluac.test.legacy;
 
 import me.hydos.unluac.Configuration;
 import me.hydos.unluac.Main;
 import me.hydos.unluac.assemble.AssemblerException;
-import me.hydos.unluac.test.cmd.LuaCompiler;
+import me.hydos.unluac.test.legacy.cmd.LuaCompiler;
 
 import java.io.IOException;
 import java.nio.file.Files;
