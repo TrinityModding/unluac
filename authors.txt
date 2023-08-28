@@ -1,2 +1,0 @@
-tehtmi -- main developer
-Thomas Klaeger -- added support for Lua 5.0

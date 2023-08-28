@@ -1,10 +1,4 @@
-.gradle
-bin
-test/working
-
-# ignore temporary build files:
+.gradle/
+.idea/
+out/
 build/
-
-# ignore editor bak files
-*~
-*.bak
