@@ -1,190 +1,186 @@
 package me.hydos.unluac.decompile.block;
 
+import me.hydos.unluac.decompile.*;
+import me.hydos.unluac.decompile.expression.Expression;
+import me.hydos.unluac.decompile.statement.Statement;
+import me.hydos.unluac.decompile.target.Target;
+import me.hydos.unluac.parse.LFunction;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import me.hydos.unluac.decompile.CloseType;
-import me.hydos.unluac.decompile.Walker;
-import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.decompile.target.Target;
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Registers;
-import me.hydos.unluac.decompile.expression.Expression;
-import me.hydos.unluac.parse.LFunction;
-
 public class TForBlock extends ContainerBlock {
 
-  protected final int internalRegisterFirst;
-  protected final int internalRegisterLast;
-  
-  protected final int explicitRegisterFirst;
-  protected final int explicitRegisterLast;
-  
-  protected final int internalScopeBegin;
-  protected final int internalScopeEnd;
-  
-  protected final int explicitScopeBegin;
-  protected final int explicitScopeEnd;
-  
-  protected final int innerScopeEnd;
-  
-  private Target[] targets;
-  private Expression[] values;
-  
-  public static TForBlock make50(LFunction function, int begin, int end, int register, int length, boolean innerClose) {
-    int innerScopeEnd = end - 3;
-    if(innerClose) {
-      innerScopeEnd--;
-    }
-    return new TForBlock(
-      function, begin, end,
-      register, register + 1, register + 2, register + 1 + length,
-      begin - 1, end - 1,
-      begin - 1, end - 1,
-      innerScopeEnd
-    );
-  }
-  
-  public static TForBlock make51(LFunction function, int begin, int end, int register, int length, boolean forvarClose, boolean innerClose) {
-    int explicitScopeEnd = end - 3;
-    int innerScopeEnd = end - 3;
-    if(forvarClose) {
-      explicitScopeEnd--;
-      innerScopeEnd--;
-    }
-    if(innerClose) {
-      innerScopeEnd--;
-    }
-    return new TForBlock(
-      function, begin, end,
-      register, register + 2, register + 3, register + 2 + length,
-      begin - 2, end - 1,
-      begin - 1, explicitScopeEnd,
-      innerScopeEnd
-    );
-  }
-  
-  public static TForBlock make54(LFunction function, int begin, int end, int register, int length, boolean forvarClose) {
-    int innerScopeEnd = end - 3;
-    if(forvarClose) {
-      innerScopeEnd--;
-    }
-    return new TForBlock(
-      function, begin, end,
-      register, register + 3, register + 4, register + 3 + length,
-      begin - 2, end,
-      begin - 1, end - 3,
-      innerScopeEnd
-    );
-  }
-  
-  public TForBlock(LFunction function, int begin, int end,
-    int internalRegisterFirst, int internalRegisterLast,
-    int explicitRegisterFirst, int explicitRegisterLast,
-    int internalScopeBegin, int internalScopeEnd,
-    int explicitScopeBegin, int explicitScopeEnd,
-    int innerScopeEnd
-  ) {
-    super(function, begin, end, CloseType.NONE, -1, -1);
-    this.internalRegisterFirst = internalRegisterFirst;
-    this.internalRegisterLast = internalRegisterLast;
-    this.explicitRegisterFirst = explicitRegisterFirst;
-    this.explicitRegisterLast = explicitRegisterLast;
-    this.internalScopeBegin = internalScopeBegin;
-    this.internalScopeEnd = internalScopeEnd;
-    this.explicitScopeBegin = explicitScopeBegin;
-    this.explicitScopeEnd = explicitScopeEnd;
-    this.innerScopeEnd = innerScopeEnd;
-  }
+    protected final int internalRegisterFirst;
+    protected final int internalRegisterLast;
 
-  public List<Target> getTargets(Registers r) {
-    ArrayList<Target> targets = new ArrayList<Target>(explicitRegisterLast - explicitRegisterFirst + 1);
-    for(int register = explicitRegisterFirst; register <= explicitRegisterLast; register++) {
-      targets.add(r.getTarget(register, begin - 1));
-    }
-    return targets;
-  }
-  
-  public void handleVariableDeclarations(Registers r) {
-    for(int register = internalRegisterFirst; register <= internalRegisterLast; register++) {
-      r.setInternalLoopVariable(register, internalScopeBegin, internalScopeEnd);
-    }
-    for(int register = explicitRegisterFirst; register <= explicitRegisterLast; register++) {
-      r.setExplicitLoopVariable(register, explicitScopeBegin, explicitScopeEnd);
-    }
-  }
-  
-  @Override
-  public void resolve(Registers r) {
-    List<Target> targets = getTargets(r);
-    ArrayList<Expression> values = new ArrayList<Expression>(3);
-    for(int register = internalRegisterFirst; register <= internalRegisterLast; register++) {
-      Expression value = r.getValue(register, begin - 1);
-      values.add(value);
-      if(value.isMultiple()) break;
-    }
-    
-    this.targets = targets.toArray(new Target[targets.size()]);
-    this.values = values.toArray(new Expression[values.size()]);
-  }
-  
-  @Override
-  public void walk(Walker w) {
-    w.visitStatement(this);
-    for(Expression expression : values) {
-      expression.walk(w);
-    }
-    for(Statement statement : statements) {
-      statement.walk(w);
-    }
-  }
-  
-  @Override
-  public int scopeEnd() {
-    return innerScopeEnd;
-  }
-  
-  @Override
-  public boolean breakable() {
-    return true;
-  }
-  
-  @Override
-  public boolean hasHeader() {
-    return true;
-  }
-  
-  @Override
-  public boolean isUnprotected() {
-    return false;
-  }
+    protected final int explicitRegisterFirst;
+    protected final int explicitRegisterLast;
 
-  @Override
-  public int getLoopback() {
-    throw new IllegalStateException();
-  }
+    protected final int internalScopeBegin;
+    protected final int internalScopeEnd;
 
-  @Override
-  public void print(Decompiler d, Output out) {
-    out.print("for ");
-    targets[0].print(d, out, false);
-    for(int i = 1; i < targets.length; i++) {
-      out.print(", ");
-      targets[i].print(d, out, false);
+    protected final int explicitScopeBegin;
+    protected final int explicitScopeEnd;
+
+    protected final int innerScopeEnd;
+
+    private Target[] targets;
+    private Expression[] values;
+
+    public TForBlock(LFunction function, int begin, int end,
+                     int internalRegisterFirst, int internalRegisterLast,
+                     int explicitRegisterFirst, int explicitRegisterLast,
+                     int internalScopeBegin, int internalScopeEnd,
+                     int explicitScopeBegin, int explicitScopeEnd,
+                     int innerScopeEnd
+    ) {
+        super(function, begin, end, CloseType.NONE, -1, -1);
+        this.internalRegisterFirst = internalRegisterFirst;
+        this.internalRegisterLast = internalRegisterLast;
+        this.explicitRegisterFirst = explicitRegisterFirst;
+        this.explicitRegisterLast = explicitRegisterLast;
+        this.internalScopeBegin = internalScopeBegin;
+        this.internalScopeEnd = internalScopeEnd;
+        this.explicitScopeBegin = explicitScopeBegin;
+        this.explicitScopeEnd = explicitScopeEnd;
+        this.innerScopeEnd = innerScopeEnd;
     }
-    out.print(" in ");
-    values[0].print(d, out);
-    for(int i = 1; i < values.length; i++) {
-      out.print(", ");
-      values[i].print(d, out);
+
+    public static TForBlock make50(LFunction function, int begin, int end, int register, int length, boolean innerClose) {
+        var innerScopeEnd = end - 3;
+        if (innerClose) {
+            innerScopeEnd--;
+        }
+        return new TForBlock(
+                function, begin, end,
+                register, register + 1, register + 2, register + 1 + length,
+                begin - 1, end - 1,
+                begin - 1, end - 1,
+                innerScopeEnd
+        );
     }
-    out.print(" do");
-    out.println();
-    out.indent();
-    Statement.printSequence(d, out, statements);
-    out.dedent();
-    out.print("end");
-  }
+
+    public static TForBlock make51(LFunction function, int begin, int end, int register, int length, boolean forvarClose, boolean innerClose) {
+        var explicitScopeEnd = end - 3;
+        var innerScopeEnd = end - 3;
+        if (forvarClose) {
+            explicitScopeEnd--;
+            innerScopeEnd--;
+        }
+        if (innerClose) {
+            innerScopeEnd--;
+        }
+        return new TForBlock(
+                function, begin, end,
+                register, register + 2, register + 3, register + 2 + length,
+                begin - 2, end - 1,
+                begin - 1, explicitScopeEnd,
+                innerScopeEnd
+        );
+    }
+
+    public static TForBlock make54(LFunction function, int begin, int end, int register, int length, boolean forvarClose) {
+        var innerScopeEnd = end - 3;
+        if (forvarClose) {
+            innerScopeEnd--;
+        }
+        return new TForBlock(
+                function, begin, end,
+                register, register + 3, register + 4, register + 3 + length,
+                begin - 2, end,
+                begin - 1, end - 3,
+                innerScopeEnd
+        );
+    }
+
+    public List<Target> getTargets(Registers r) {
+        var targets = new ArrayList<Target>(explicitRegisterLast - explicitRegisterFirst + 1);
+        for (var register = explicitRegisterFirst; register <= explicitRegisterLast; register++) {
+            targets.add(r.getTarget(register, begin - 1));
+        }
+        return targets;
+    }
+
+    public void handleVariableDeclarations(Registers r) {
+        for (var register = internalRegisterFirst; register <= internalRegisterLast; register++) {
+            r.setInternalLoopVariable(register, internalScopeBegin, internalScopeEnd);
+        }
+        for (var register = explicitRegisterFirst; register <= explicitRegisterLast; register++) {
+            r.setExplicitLoopVariable(register, explicitScopeBegin, explicitScopeEnd);
+        }
+    }
+
+    @Override
+    public void resolve(Registers r) {
+        var targets = getTargets(r);
+        var values = new ArrayList<Expression>(3);
+        for (var register = internalRegisterFirst; register <= internalRegisterLast; register++) {
+            var value = r.getValue(register, begin - 1);
+            values.add(value);
+            if (value.isMultiple()) break;
+        }
+
+        this.targets = targets.toArray(new Target[0]);
+        this.values = values.toArray(new Expression[0]);
+    }
+
+    @Override
+    public int scopeEnd() {
+        return innerScopeEnd;
+    }
+
+    @Override
+    public boolean hasHeader() {
+        return true;
+    }
+
+    @Override
+    public boolean isUnprotected() {
+        return false;
+    }
+
+    @Override
+    public int getLoopback() {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean breakable() {
+        return true;
+    }
+
+    @Override
+    public void walk(Walker w) {
+        w.visitStatement(this);
+        for (var expression : values) {
+            expression.walk(w);
+        }
+        for (var statement : statements) {
+            statement.walk(w);
+        }
+    }
+
+    @Override
+    public void print(Decompiler d, Output out) {
+        out.print("for ");
+        targets[0].print(d, out, false);
+        for (var i = 1; i < targets.length; i++) {
+            out.print(", ");
+            targets[i].print(d, out, false);
+        }
+        out.print(" in ");
+        values[0].print(d, out);
+        for (var i = 1; i < values.length; i++) {
+            out.print(", ");
+            values[i].print(d, out);
+        }
+        out.print(" do");
+        out.println();
+        out.indent();
+        Statement.printSequence(d, out, statements);
+        out.dedent();
+        out.print("end");
+    }
 
 }

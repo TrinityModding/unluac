@@ -5,76 +5,69 @@ import me.hydos.unluac.decompile.expression.ConstantExpression;
 import me.hydos.unluac.decompile.expression.Expression;
 
 public interface Condition {
-  
-  public static enum OperandType {
-    R,
-    RK,
-    K,
-    I,
-    F,
-  }
-  
-  public static class Operand {
-    
-    public Operand(OperandType type, int value) {
-      this.type = type;
-      this.value = value;
+
+    Condition inverse();
+
+    boolean invertible();
+
+    int register();
+
+    boolean isRegisterTest();
+
+    boolean isOrCondition();
+
+    boolean isSplitable();
+
+    Condition[] split();
+
+    Expression asExpression(Registers r);
+
+    @Override
+    String toString();
+
+    enum OperandType {
+        R,
+        RK,
+        K,
+        I,
+        F,
     }
-    
+
+  record Operand(OperandType type, int value) {
+
     public Expression asExpression(Registers r, int line) {
-      switch(type) {
-      case R: return r.getExpression(this.value, line);
-      case RK: return r.getKExpression(this.value, line);
-      case K: return r.getFunction().getConstantExpression(this.value);
-      case I: return ConstantExpression.createInteger(this.value);
-      case F: return ConstantExpression.createDouble((double) this.value);
-      default: throw new IllegalStateException();
-      }
+      return switch (type) {
+        case R -> r.getExpression(this.value, line);
+        case RK -> r.getKExpression(this.value, line);
+        case K -> r.getFunction().getConstantExpression(this.value);
+        case I -> ConstantExpression.createInteger(this.value);
+        case F -> ConstantExpression.createDouble(this.value);
+        default -> throw new IllegalStateException();
+      };
     }
-    
+
     public boolean isRegister(Registers r) {
-      switch(type) {
-      case R: return true;
-      case RK: return !r.isKConstant(this.value);
-      case K: return false;
-      case I: return false;
-      case F: return false;
-      default: throw new IllegalStateException();
-      }
+      return switch (type) {
+        case R -> true;
+        case RK -> !r.isKConstant(this.value);
+        case K -> false;
+        case I -> false;
+        case F -> false;
+        default -> throw new IllegalStateException();
+      };
     }
-    
+
     public int getUpdated(Registers r, int line) {
-      switch(type) {
-      case R: return r.getUpdated(this.value, line);
-      case RK:
-        if(r.isKConstant(this.value)) throw new IllegalStateException();
-        return r.getUpdated(this.value, line);
-      default: throw new IllegalStateException();
-      }
+      return switch (type) {
+        case R -> r.getUpdated(this.value, line);
+        case RK -> {
+          if (r.isKConstant(this.value)) throw new IllegalStateException();
+          yield r.getUpdated(this.value, line);
+        }
+        default -> throw new IllegalStateException();
+      };
     }
-    
-    public final OperandType type;
-    public final int value;
-    
+
   }
-  
-  public Condition inverse();
-  
-  public boolean invertible();
-  
-  public int register();
-  
-  public boolean isRegisterTest();
-  
-  public boolean isOrCondition();
-  
-  public boolean isSplitable();
-  
-  public Condition[] split();
-  
-  public Expression asExpression(Registers r);
-  
-  @Override
-  public String toString();
-  
+
 }

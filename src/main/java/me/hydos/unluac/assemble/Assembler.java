@@ -1,984 +1,873 @@
 package me.hydos.unluac.assemble;
 
-import java.io.OutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import me.hydos.unluac.decompile.OperandFormat;
 import me.hydos.unluac.Configuration;
 import me.hydos.unluac.Version;
 import me.hydos.unluac.decompile.CodeExtract;
 import me.hydos.unluac.decompile.Op;
 import me.hydos.unluac.decompile.OpcodeMap;
-import me.hydos.unluac.parse.BHeader;
-import me.hydos.unluac.parse.BInteger;
-import me.hydos.unluac.parse.BIntegerType;
-import me.hydos.unluac.parse.LAbsLineInfo;
-import me.hydos.unluac.parse.LAbsLineInfoType;
-import me.hydos.unluac.parse.LBoolean;
-import me.hydos.unluac.parse.LBooleanType;
-import me.hydos.unluac.parse.LConstantType;
-import me.hydos.unluac.parse.LFunction;
-import me.hydos.unluac.parse.LFunctionType;
-import me.hydos.unluac.parse.LHeader;
-import me.hydos.unluac.parse.LLocal;
-import me.hydos.unluac.parse.LLocalType;
-import me.hydos.unluac.parse.LNil;
-import me.hydos.unluac.parse.LNumberType;
+import me.hydos.unluac.decompile.OperandFormat;
+import me.hydos.unluac.parse.*;
 import me.hydos.unluac.parse.LNumberType.NumberMode;
-import me.hydos.unluac.parse.LObject;
-import me.hydos.unluac.parse.LString;
-import me.hydos.unluac.parse.LStringType;
-import me.hydos.unluac.parse.LUpvalue;
-import me.hydos.unluac.parse.LUpvalueType;
 import me.hydos.unluac.util.StringUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.math.BigInteger;
+import java.util.*;
+
 class AssemblerLabel {
-  
-  public String name;
-  public int code_index;
-  
+
+    public String name;
+    public int code_index;
+
 }
 
 class AssemblerConstant {
-  
-  enum Type {
-    NIL,
-    BOOLEAN,
-    NUMBER,
-    INTEGER,
-    FLOAT,
-    STRING,
-    LONGSTRING,
-    NAN,
-  }
-  
-  public String name;
-  public Type type;
-  
-  public boolean booleanValue;
-  public double numberValue;
-  public String stringValue;
-  public BigInteger integerValue;
-  public long nanValue;
+
+    public String name;
+    public Type type;
+    public boolean booleanValue;
+    public double numberValue;
+    public String stringValue;
+    public BigInteger integerValue;
+    public long nanValue;
+    enum Type {
+        NIL,
+        BOOLEAN,
+        NUMBER,
+        INTEGER,
+        FLOAT,
+        STRING,
+        LONGSTRING,
+        NAN,
+    }
 }
 
 class AssemblerAbsLineInfo {
-  
-  public int pc;
-  public int line;
-  
+
+    public int pc;
+    public int line;
+
 }
 
 class AssemblerLocal {
-  
-  public String name;
-  public int begin;
-  public int end;
-  
+
+    public String name;
+    public int begin;
+    public int end;
+
 }
 
 class AssemblerUpvalue {
-  
-  public String name;
-  public int index;
-  public boolean instack;
-  
+
+    public String name;
+    public int index;
+    public boolean instack;
+
 }
 
 class AssemblerFunction {
-  
-  class FunctionFixup {
-    
-    int code_index;
-    String function;
-    CodeExtract.Field field;
-    
-  }
-  
-  class JumpFixup {
-    
-    int code_index;
-    String label;
-    CodeExtract.Field field;
-    boolean negate;
-    
-  }
-  
-  public AssemblerChunk chunk;
-  public AssemblerFunction parent;
-  public String name;
-  public List<AssemblerFunction> children;
-  
-  public boolean hasSource;
-  public String source;
-  
-  public boolean hasLineDefined;
-  public int linedefined;
-  
-  public boolean hasLastLineDefined;
-  public int lastlinedefined;
-  
-  public boolean hasMaxStackSize;
-  public int maxStackSize;
-  
-  public boolean hasNumParams;
-  public int numParams;
-  
-  public boolean hasVararg;
-  public int vararg;
-  
-  public List<AssemblerLabel> labels;
-  public List<AssemblerConstant> constants;
-  public List<AssemblerUpvalue> upvalues;
-  public List<Integer> code;
-  public List<Integer> lines;
-  public List<AssemblerAbsLineInfo> abslineinfo;
-  public List<AssemblerLocal> locals;
-  
-  public List<FunctionFixup> f_fixup;
-  public List<JumpFixup> j_fixup;
-  
-  public AssemblerFunction(AssemblerChunk chunk, AssemblerFunction parent, String name) {
-    this.chunk = chunk;
-    this.parent = parent;
-    this.name = name;
-    children = new ArrayList<AssemblerFunction>();
-    
-    hasSource = false;
-    hasLineDefined = false;
-    hasLastLineDefined = false;
-    hasMaxStackSize = false;
-    hasNumParams = false;
-    hasVararg = false;
-    
-    labels = new ArrayList<AssemblerLabel>();
-    constants = new ArrayList<AssemblerConstant>();
-    upvalues = new ArrayList<AssemblerUpvalue>();
-    code = new ArrayList<Integer>();
-    lines = new ArrayList<Integer>();
-    abslineinfo = new ArrayList<AssemblerAbsLineInfo>();
-    locals = new ArrayList<AssemblerLocal>();
-    
-    f_fixup = new ArrayList<FunctionFixup>();
-    j_fixup = new ArrayList<JumpFixup>();
-  }
-  
-  public AssemblerFunction addChild(String name) {
-    AssemblerFunction child = new AssemblerFunction(chunk, this, name);
-    children.add(child);
-    return child;
-  }
-  
-  public AssemblerFunction getInnerParent(String[] parts, int index) throws AssemblerException {
-    if(index + 1 == parts.length) return this;
-    for(AssemblerFunction child : children) {
-      if(child.name.equals(parts[index])) {
-        return child.getInnerParent(parts, index + 1);
-      }
+
+    public final AssemblerChunk chunk;
+    public final AssemblerFunction parent;
+    public final String name;
+    public final List<AssemblerFunction> children;
+    public boolean hasSource;
+    public String source;
+    public boolean hasLineDefined;
+    public int linedefined;
+    public boolean hasLastLineDefined;
+    public int lastlinedefined;
+    public boolean hasMaxStackSize;
+    public int maxStackSize;
+    public boolean hasNumParams;
+    public int numParams;
+    public boolean hasVararg;
+    public int vararg;
+    public final List<AssemblerLabel> labels;
+    public final List<AssemblerConstant> constants;
+    public final List<AssemblerUpvalue> upvalues;
+    public final List<Integer> code;
+    public final List<Integer> lines;
+    public final List<AssemblerAbsLineInfo> abslineinfo;
+    public final List<AssemblerLocal> locals;
+    public final List<FunctionFixup> f_fixup;
+    public final List<JumpFixup> j_fixup;
+
+    public AssemblerFunction(AssemblerChunk chunk, AssemblerFunction parent, String name) {
+        this.chunk = chunk;
+        this.parent = parent;
+        this.name = name;
+        children = new ArrayList<>();
+
+        hasSource = false;
+        hasLineDefined = false;
+        hasLastLineDefined = false;
+        hasMaxStackSize = false;
+        hasNumParams = false;
+        hasVararg = false;
+
+        labels = new ArrayList<>();
+        constants = new ArrayList<>();
+        upvalues = new ArrayList<>();
+        code = new ArrayList<>();
+        lines = new ArrayList<>();
+        abslineinfo = new ArrayList<>();
+        locals = new ArrayList<>();
+
+        f_fixup = new ArrayList<>();
+        j_fixup = new ArrayList<>();
     }
-    throw new AssemblerException("Can't find outer function");
-  }
-  
-  public void processFunctionDirective(Assembler a, Directive d) throws AssemblerException, IOException {
-    switch(d) {
-    case SOURCE:
-      if(hasSource) throw new AssemblerException("Duplicate .source directive");
-      hasSource = true;
-      source = a.getString();
-      break;
-    case LINEDEFINED:
-      if(hasLineDefined) throw new AssemblerException("Duplicate .linedefined directive");
-      hasLineDefined = true;
-      linedefined = a.getInteger();
-      break;
-    case LASTLINEDEFINED:
-      if(hasLastLineDefined) throw new AssemblerException("Duplicate .lastlinedefined directive");
-      hasLastLineDefined = true;
-      lastlinedefined = a.getInteger();
-      break;
-    case MAXSTACKSIZE:
-      if(hasMaxStackSize) throw new AssemblerException("Duplicate .maxstacksize directive");
-      hasMaxStackSize = true;
-      maxStackSize = a.getInteger();
-      break;
-    case NUMPARAMS:
-      if(hasNumParams) throw new AssemblerException("Duplicate .numparams directive");
-      hasNumParams = true;
-      numParams = a.getInteger();
-      break;
-    case IS_VARARG:
-      if(hasVararg) throw new AssemblerException("Duplicate .is_vararg directive");
-      hasVararg = true;
-      vararg = a.getInteger();
-      break;
-    case LABEL: {
-      String name = a.getAny();
-      AssemblerLabel label = new AssemblerLabel();
-      label.name = name;
-      label.code_index = code.size();
-      labels.add(label);
-      break;
+
+    public AssemblerFunction addChild(String name) {
+        var child = new AssemblerFunction(chunk, this, name);
+        children.add(child);
+        return child;
     }
-    case CONSTANT: {
-      String name = a.getName();
-      String value = a.getAny();
-      AssemblerConstant constant = new AssemblerConstant();
-      constant.name = name;
-      if(value.equals("nil")) {
-        constant.type = AssemblerConstant.Type.NIL;
-      } else if(value.equals("true")) {
-        constant.type = AssemblerConstant.Type.BOOLEAN;
-        constant.booleanValue = true;
-      } else if(value.equals("false")) {
-        constant.type = AssemblerConstant.Type.BOOLEAN;
-        constant.booleanValue = false;
-      } else if(value.startsWith("\"")) {
-        constant.type = AssemblerConstant.Type.STRING;
-        constant.stringValue = StringUtils.fromPrintString(value);
-      } else if(value.startsWith("L\"")) {
-        constant.type = AssemblerConstant.Type.LONGSTRING;
-        constant.stringValue = StringUtils.fromPrintString(value.substring(1));
-      } else if(value.equals("null")) {
-        constant.type = AssemblerConstant.Type.STRING;
-        constant.stringValue = null;
-      } else if(value.equals("NaN")) {
-        constant.type = AssemblerConstant.Type.NAN;
-        constant.nanValue = 0;
-      } else {
-        try {
-          if(value.startsWith("NaN+") || value.startsWith("NaN-")) {
-            long bits = Long.parseUnsignedLong(value.substring(4), 16);
-            if(bits < 0 || (bits & Double.doubleToRawLongBits(Double.NaN)) != 0) {
-              throw new AssemblerException("Unrecognized NaN value: " + value);
+
+    public AssemblerFunction getInnerParent(String[] parts, int index) throws AssemblerException {
+        if (index + 1 == parts.length) return this;
+        for (var child : children) {
+            if (child.name.equals(parts[index])) {
+                return child.getInnerParent(parts, index + 1);
             }
-            if(value.startsWith("NaN-")) {
-              bits ^= 0x8000000000000000L;
+        }
+        throw new AssemblerException("Can't find outer function");
+    }
+
+    public void processFunctionDirective(Assembler a, Directive d) throws AssemblerException, IOException {
+        switch (d) {
+            case SOURCE -> {
+                if (hasSource) throw new AssemblerException("Duplicate .source directive");
+                hasSource = true;
+                source = a.getString();
             }
-            constant.type = AssemblerConstant.Type.NAN;
-            constant.nanValue = bits;
-          } else if(chunk.number != null) { // TODO: better check
-            constant.numberValue = Double.parseDouble(value);
-            constant.type = AssemblerConstant.Type.NUMBER;
-          } else {
-            if(value.contains(".") || value.contains("E") || value.contains("e")) {
-              constant.numberValue = Double.parseDouble(value);
-              constant.type = AssemblerConstant.Type.FLOAT;
-            } else {
-              constant.integerValue = new BigInteger(value);
-              constant.type = AssemblerConstant.Type.INTEGER;
+            case LINEDEFINED -> {
+                if (hasLineDefined) throw new AssemblerException("Duplicate .linedefined directive");
+                hasLineDefined = true;
+                linedefined = a.getInteger();
             }
-          }
-        } catch(NumberFormatException e) {
-          throw new AssemblerException("Unrecognized constant value: " + value);
+            case LASTLINEDEFINED -> {
+                if (hasLastLineDefined) throw new AssemblerException("Duplicate .lastlinedefined directive");
+                hasLastLineDefined = true;
+                lastlinedefined = a.getInteger();
+            }
+            case MAXSTACKSIZE -> {
+                if (hasMaxStackSize) throw new AssemblerException("Duplicate .maxstacksize directive");
+                hasMaxStackSize = true;
+                maxStackSize = a.getInteger();
+            }
+            case NUMPARAMS -> {
+                if (hasNumParams) throw new AssemblerException("Duplicate .numparams directive");
+                hasNumParams = true;
+                numParams = a.getInteger();
+            }
+            case IS_VARARG -> {
+                if (hasVararg) throw new AssemblerException("Duplicate .is_vararg directive");
+                hasVararg = true;
+                vararg = a.getInteger();
+            }
+            case LABEL -> {
+                var name = a.getAny();
+                var label = new AssemblerLabel();
+                label.name = name;
+                label.code_index = code.size();
+                labels.add(label);
+            }
+            case CONSTANT -> {
+                var name = a.getName();
+                var value = a.getAny();
+                var constant = new AssemblerConstant();
+                constant.name = name;
+                if (value.equals("nil")) {
+                    constant.type = AssemblerConstant.Type.NIL;
+                } else if (value.equals("true")) {
+                    constant.type = AssemblerConstant.Type.BOOLEAN;
+                    constant.booleanValue = true;
+                } else if (value.equals("false")) {
+                    constant.type = AssemblerConstant.Type.BOOLEAN;
+                    constant.booleanValue = false;
+                } else if (value.startsWith("\"")) {
+                    constant.type = AssemblerConstant.Type.STRING;
+                    constant.stringValue = StringUtils.fromPrintString(value);
+                } else if (value.startsWith("L\"")) {
+                    constant.type = AssemblerConstant.Type.LONGSTRING;
+                    constant.stringValue = StringUtils.fromPrintString(value.substring(1));
+                } else if (value.equals("null")) {
+                    constant.type = AssemblerConstant.Type.STRING;
+                    constant.stringValue = null;
+                } else if (value.equals("NaN")) {
+                    constant.type = AssemblerConstant.Type.NAN;
+                    constant.nanValue = 0;
+                } else {
+                    try {
+                        if (value.startsWith("NaN+") || value.startsWith("NaN-")) {
+                            var bits = Long.parseUnsignedLong(value.substring(4), 16);
+                            if (bits < 0 || (bits & Double.doubleToRawLongBits(Double.NaN)) != 0) {
+                                throw new AssemblerException("Unrecognized NaN value: " + value);
+                            }
+                            if (value.startsWith("NaN-")) {
+                                bits ^= 0x8000000000000000L;
+                            }
+                            constant.type = AssemblerConstant.Type.NAN;
+                            constant.nanValue = bits;
+                        } else if (chunk.number != null) { // TODO: better check
+                            constant.numberValue = Double.parseDouble(value);
+                            constant.type = AssemblerConstant.Type.NUMBER;
+                        } else {
+                            if (value.contains(".") || value.contains("E") || value.contains("e")) {
+                                constant.numberValue = Double.parseDouble(value);
+                                constant.type = AssemblerConstant.Type.FLOAT;
+                            } else {
+                                constant.integerValue = new BigInteger(value);
+                                constant.type = AssemblerConstant.Type.INTEGER;
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        throw new AssemblerException("Unrecognized constant value: " + value);
+                    }
+                }
+                constants.add(constant);
+            }
+            case LINE -> {
+                lines.add(a.getInteger());
+            }
+            case ABSLINEINFO -> {
+                var info = new AssemblerAbsLineInfo();
+                info.pc = a.getInteger();
+                info.line = a.getInteger();
+                abslineinfo.add(info);
+            }
+            case LOCAL -> {
+                var local = new AssemblerLocal();
+                local.name = a.getString();
+                local.begin = a.getInteger();
+                local.end = a.getInteger();
+                locals.add(local);
+            }
+            case UPVALUE -> {
+                var upvalue = new AssemblerUpvalue();
+                upvalue.name = a.getString();
+                upvalue.index = a.getInteger();
+                upvalue.instack = a.getBoolean();
+                upvalues.add(upvalue);
+            }
+            default -> throw new IllegalStateException("Unhandled directive: " + d);
         }
-      }
-      constants.add(constant);
-      break;
     }
-    case LINE: {
-      lines.add(a.getInteger());
-      break;
-    }
-    case ABSLINEINFO: {
-      AssemblerAbsLineInfo info = new AssemblerAbsLineInfo();
-      info.pc = a.getInteger();
-      info.line = a.getInteger();
-      abslineinfo.add(info);
-      break;
-    }
-    case LOCAL: {
-      AssemblerLocal local = new AssemblerLocal();
-      local.name = a.getString();
-      local.begin = a.getInteger();
-      local.end = a.getInteger();
-      locals.add(local);
-      break;
-    }
-    case UPVALUE: {
-      AssemblerUpvalue upvalue = new AssemblerUpvalue();
-      upvalue.name = a.getString();
-      upvalue.index = a.getInteger();
-      upvalue.instack = a.getBoolean();
-      upvalues.add(upvalue);
-      break;
-    }
-    default:
-      throw new IllegalStateException("Unhandled directive: " + d);  
-    }
-  }
-  
-  public void processOp(Assembler a, CodeExtract extract, Op op, int opcode) throws AssemblerException, IOException {
-    if(!hasMaxStackSize) throw new AssemblerException("Expected .maxstacksize before code");
-    if(opcode >= 0 && !extract.op.check(opcode)) throw new IllegalStateException("Invalid opcode: " + opcode);
-    int codepoint = opcode >= 0 ? extract.op.encode(opcode) : 0;
-    for(OperandFormat operand : op.operands) {
-      CodeExtract.Field field;
-      switch(operand.field) {
-      case A: field = extract.A; break;
-      case B: field = extract.B; break;
-      case C: field = extract.C; break;
-      case k: field = extract.k; break;
-      case Ax: field = extract.Ax; break;
-      case sJ: field = extract.sJ; break;
-      case Bx: field = extract.Bx; break;
-      case sBx: field = extract.sBx; break;
-      case x: field = extract.x; break;
-      default: throw new IllegalStateException("Unhandled field: " + operand.field);
-      }
-      int x;
-      switch(operand.format) {
-      case RAW:
-      case IMMEDIATE_INTEGER:
-      case IMMEDIATE_FLOAT:
-        x = a.getInteger();
-        break;
-      case IMMEDIATE_SIGNED_INTEGER:
-        x = a.getInteger();
-        x += field.max() / 2;
-        break;
-      case REGISTER: {
-        x = a.getRegister();
-        //TODO: stack warning
-        break;
-      }
-      case REGISTER_K: {
-        Assembler.RKInfo rk = a.getRegisterK54();
-        x = rk.x;
-        if(rk.constant) {
-          x += chunk.version.rkoffset.get();
+
+    public void processOp(Assembler a, CodeExtract extract, Op op, int opcode) throws AssemblerException, IOException {
+        if (!hasMaxStackSize) throw new AssemblerException("Expected .maxstacksize before code");
+        if (opcode >= 0 && !extract.op.check(opcode)) throw new IllegalStateException("Invalid opcode: " + opcode);
+        var codepoint = opcode >= 0 ? extract.op.encode(opcode) : 0;
+        for (var operand : op.operands) {
+            var field = switch (operand.field) {
+                case A -> extract.A;
+                case B -> extract.B;
+                case C -> extract.C;
+                case k -> extract.k;
+                case Ax -> extract.Ax;
+                case sJ -> extract.sJ;
+                case Bx -> extract.Bx;
+                case sBx -> extract.sBx;
+                case x -> extract.x;
+                default -> throw new IllegalStateException("Unhandled field: " + operand.field);
+            };
+            int x;
+            switch (operand.format) {
+                case RAW, IMMEDIATE_INTEGER, IMMEDIATE_FLOAT -> x = a.getInteger();
+                case IMMEDIATE_SIGNED_INTEGER -> {
+                    x = a.getInteger();
+                    x += field.max() / 2;
+                }
+                case REGISTER -> {
+                    x = a.getRegister();
+                    //TODO: stack warning
+                }
+                case REGISTER_K -> {
+                    var rk = a.getRegisterK54();
+                    x = rk.x;
+                    if (rk.constant) {
+                        x += chunk.version.rkoffset.get();
+                    }
+                    //TODO: stack warning
+                }
+                case REGISTER_K54 -> {
+                    var rk = a.getRegisterK54();
+                    codepoint |= extract.k.encode(rk.constant ? 1 : 0);
+                    x = rk.x;
+                }
+                case CONSTANT, CONSTANT_INTEGER, CONSTANT_STRING -> {
+                    x = a.getConstant();
+                }
+                case UPVALUE -> {
+                    x = a.getUpvalue();
+                }
+                case FUNCTION -> {
+                    var fix = new FunctionFixup();
+                    fix.code_index = code.size();
+                    fix.function = a.getAny();
+                    fix.field = field;
+                    f_fixup.add(fix);
+                    x = 0;
+                }
+                case JUMP -> {
+                    var fix = new JumpFixup();
+                    fix.code_index = code.size();
+                    fix.label = a.getAny();
+                    fix.field = field;
+                    fix.negate = false;
+                    j_fixup.add(fix);
+                    x = 0;
+                }
+                case JUMP_NEGATIVE -> {
+                    var fix = new JumpFixup();
+                    fix.code_index = code.size();
+                    fix.label = a.getAny();
+                    fix.field = field;
+                    fix.negate = true;
+                    j_fixup.add(fix);
+                    x = 0;
+                }
+                default -> throw new IllegalStateException("Unhandled operand format: " + operand.format);
+            }
+            if (!field.check(x)) {
+                throw new AssemblerException("Operand " + operand.field + " out of range");
+            }
+            codepoint |= field.encode(x);
         }
-        //TODO: stack warning
-        break;
-      }
-      case REGISTER_K54: {
-        Assembler.RKInfo rk = a.getRegisterK54();
-        codepoint |= extract.k.encode(rk.constant ? 1 : 0);
-        x = rk.x;
-        break;
-      }
-      case CONSTANT:
-      case CONSTANT_INTEGER:
-      case CONSTANT_STRING: {
-        x = a.getConstant();
-        break;
-      }
-      case UPVALUE: {
-        x = a.getUpvalue();
-        break;
-      }
-      case FUNCTION: {
-        FunctionFixup fix = new FunctionFixup();
-        fix.code_index = code.size();
-        fix.function = a.getAny();
-        fix.field = field;
-        f_fixup.add(fix);
-        x = 0;
-        break;
-      }
-      case JUMP: {
-        JumpFixup fix = new JumpFixup();
-        fix.code_index = code.size();
-        fix.label = a.getAny();
-        fix.field = field;
-        fix.negate = false;
-        j_fixup.add(fix);
-        x = 0;
-        break;
-      }
-      case JUMP_NEGATIVE: {
-        JumpFixup fix = new JumpFixup();
-        fix.code_index = code.size();
-        fix.label = a.getAny();
-        fix.field = field;
-        fix.negate = true;
-        j_fixup.add(fix);
-        x = 0;
-        break;
-      }
-      default:
-        throw new IllegalStateException("Unhandled operand format: " + operand.format);
-      }
-      if(!field.check(x)) {
-        throw new AssemblerException("Operand " + operand.field + " out of range"); 
-      }
-      codepoint |= field.encode(x);
+        code.add(codepoint);
     }
-    code.add(codepoint);
-  }
-  
-  public void fixup(CodeExtract extract) throws AssemblerException {
-    for(FunctionFixup fix : f_fixup) {
-      int codepoint = code.get(fix.code_index);
-      int x = -1;
-      for(int f = 0; f < children.size(); f++) {
-        AssemblerFunction child = children.get(f);
-        if(fix.function.equals(child.name)) {
-          x = f;
-          break;
+
+    public void fixup(CodeExtract extract) throws AssemblerException {
+        for (var fix : f_fixup) {
+            int codepoint = code.get(fix.code_index);
+            var x = -1;
+            for (var f = 0; f < children.size(); f++) {
+                var child = children.get(f);
+                if (fix.function.equals(child.name)) {
+                    x = f;
+                    break;
+                }
+            }
+            if (x == -1) {
+                throw new AssemblerException("Unknown function: " + fix.function);
+            }
+            codepoint = fix.field.clear(codepoint);
+            codepoint |= fix.field.encode(x);
+            code.set(fix.code_index, codepoint);
         }
-      }
-      if(x == -1) {
-        throw new AssemblerException("Unknown function: " + fix.function);
-      }
-      codepoint = fix.field.clear(codepoint);
-      codepoint |= fix.field.encode(x);
-      code.set(fix.code_index, codepoint);
-    }
-    
-    for(JumpFixup fix : j_fixup) {
-      int codepoint = code.get(fix.code_index);
-      int x = 0;
-      boolean found = false;
-      for(AssemblerLabel label : labels) {
-        if(fix.label.equals(label.name)) {
-          x = label.code_index - fix.code_index - 1;
-          if(fix.negate) x = -x;
-          found = true;
-          break;
+
+        for (var fix : j_fixup) {
+            int codepoint = code.get(fix.code_index);
+            var x = 0;
+            var found = false;
+            for (var label : labels) {
+                if (fix.label.equals(label.name)) {
+                    x = label.code_index - fix.code_index - 1;
+                    if (fix.negate) x = -x;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                throw new AssemblerException("Unknown label: " + fix.label);
+            }
+            codepoint = fix.field.clear(codepoint);
+            codepoint |= fix.field.encode(x);
+            code.set(fix.code_index, codepoint);
         }
-      }
-      if(!found) {
-        throw new AssemblerException("Unknown label: " + fix.label);
-      }
-      codepoint = fix.field.clear(codepoint);
-      codepoint |= fix.field.encode(x);
-      code.set(fix.code_index, codepoint);
+
+        for (var f : children) {
+            f.fixup(extract);
+        }
     }
-    
-    for(AssemblerFunction f : children) {
-      f.fixup(extract);
+
+    static class FunctionFixup {
+
+        int code_index;
+        String function;
+        CodeExtract.Field field;
+
     }
-  }
-  
+
+    static class JumpFixup {
+
+        int code_index;
+        String label;
+        CodeExtract.Field field;
+        boolean negate;
+
+    }
+
 }
 
 class AssemblerChunk {
-  
-  public Version version;
-  
-  public int format;
-  
-  public LHeader.LEndianness endianness;
-  
-  public int int_size;
-  public BIntegerType integer;
-  
-  public int size_t_size;
-  public BIntegerType sizeT;
-  
-  public int instruction_size;
-  public int op_size;
-  public int a_size;
-  public int b_size;
-  public int c_size;
-  
-  public Map<Integer, Op> useropmap;
-  
-  public boolean number_integral;
-  public int number_size;
-  public LNumberType number;
-  
-  public LNumberType linteger;
-  
-  public LNumberType lfloat;
-  
-  public AssemblerFunction main;
-  public AssemblerFunction current;
-  public CodeExtract extract;
-  
-  public final Set<Directive> processed_directives;
-  
-  public AssemblerChunk(Version version) {
-    this.version = version;
-    processed_directives = new HashSet<Directive>();
-    
-    main = null;
-    current = null;
-    extract = null;
-  }
-  
-  public void processHeaderDirective(Assembler a, Directive d) throws AssemblerException, IOException {
-    if(d != Directive.OP && processed_directives.contains(d)) {
-      throw new AssemblerException("Duplicate " + d.name() + " directive");
+
+    public final Set<Directive> processed_directives;
+    public final Version version;
+    public int format;
+    public LHeader.LEndianness endianness;
+    public int int_size;
+    public BIntegerType integer;
+    public int size_t_size;
+    public BIntegerType sizeT;
+    public int instruction_size;
+    public int op_size;
+    public int a_size;
+    public int b_size;
+    public int c_size;
+    public Map<Integer, Op> useropmap;
+    public boolean number_integral;
+    public int number_size;
+    public LNumberType number;
+    public LNumberType linteger;
+    public LNumberType lfloat;
+    public AssemblerFunction main;
+    public AssemblerFunction current;
+    public CodeExtract extract;
+
+    public AssemblerChunk(Version version) {
+        this.version = version;
+        processed_directives = new HashSet<>();
+
+        main = null;
+        current = null;
+        extract = null;
     }
-    processed_directives.add(d);
-    switch(d) {
-    case FORMAT:
-      format = a.getInteger();
-      break;
-    case ENDIANNESS: {
-      String endiannessName = a.getName();
-      switch(endiannessName) {
-      case "LITTLE":
-        endianness = LHeader.LEndianness.LITTLE;
-        break;
-      case "BIG":
-        endianness = LHeader.LEndianness.BIG;
-        break;
-      default:
-        throw new AssemblerException("Unknown endianness \"" + endiannessName + "\"");
-      }
-      break;
-    }
-    case INT_SIZE:
-      int_size = a.getInteger();
-      integer = BIntegerType.create50Type(true, int_size, version.allownegativeint.get());
-      break;
-    case SIZE_T_SIZE:
-      size_t_size = a.getInteger();
-      sizeT = BIntegerType.create50Type(false, size_t_size, false);
-      break;
-    case INSTRUCTION_SIZE:
-      instruction_size = a.getInteger();
-      break;
-    case SIZE_OP:
-      op_size = a.getInteger();
-      break;
-    case SIZE_A:
-      a_size = a.getInteger();
-      break;
-    case SIZE_B:
-      b_size = a.getInteger();
-      break;
-    case SIZE_C:
-      c_size = a.getInteger();
-      break;
-    case NUMBER_FORMAT: {
-      String numberTypeName = a.getName();
-      switch(numberTypeName) {
-      case "integer": number_integral = true; break;
-      case "float": number_integral = false; break;
-      default: throw new AssemblerException("Unknown number_format \"" + numberTypeName + "\"");
-      }
-      number_size = a.getInteger();
-      number = new LNumberType(number_size, number_integral, NumberMode.MODE_NUMBER);
-      break;
-    }
-    case INTEGER_FORMAT:
-      linteger = new LNumberType(a.getInteger(), true, NumberMode.MODE_INTEGER);
-      break;
-    case FLOAT_FORMAT:
-      lfloat = new LNumberType(a.getInteger(), false, NumberMode.MODE_FLOAT);
-      break;
-    case OP: {
-      if(useropmap == null) {
-        useropmap = new HashMap<Integer, Op>();
-      }
-      int opcode = a.getInteger();
-      String name = a.getName();
-      Op op = version.getOpcodeMap().get(name);
-      if(op == null) {
-        throw new AssemblerException("Unknown op name \"" + name + "\"");
-      }
-      useropmap.put(opcode, op);
-      break;
-    }
-    default:
-      throw new IllegalStateException("Unhandled directive: " + d);
-    }
-  }
-  
-  public CodeExtract getCodeExtract() throws AssemblerException {
-    if(extract == null) {
-      extract = new CodeExtract(version, op_size, a_size, b_size, c_size);
-    }
-    return extract;
-  }
-  
-  public void processNewFunction(Assembler a) throws AssemblerException, IOException {
-    String name = a.getName();
-    String[] parts = name.split("/");
-    if(main == null) {
-      if(parts.length != 1) throw new AssemblerException("First (main) function declaration must not have a \"/\" in the name");
-      main = new AssemblerFunction(this, null, name);
-      current = main;
-    } else {
-      if(parts.length == 1 || !parts[0].equals(main.name)) throw new AssemblerException("Function \"" + name + "\" isn't contained in the main function");
-      AssemblerFunction parent = main.getInnerParent(parts, 1);
-      current = parent.addChild(parts[parts.length - 1]);
-    }
-  }
-  
-  public void processFunctionDirective(Assembler a, Directive d) throws AssemblerException, IOException {
-    if(current == null) {
-      throw new AssemblerException("Misplaced function directive before declaration of any function");
-    }
-    current.processFunctionDirective(a, d);
-  }
-  
-  public void processOp(Assembler a, Op op, int opcode) throws AssemblerException, IOException {
-    if(current == null) {
-      throw new AssemblerException("Misplaced code before declaration of any function");
-    }
-    current.processOp(a, getCodeExtract(), op, opcode);
-  }
-  
-  public void fixup() throws AssemblerException {
-    main.fixup(getCodeExtract());
-  }
-  
-  public void write(OutputStream out) throws AssemblerException, IOException {
-    LBooleanType bool = new LBooleanType();
-    LStringType string = version.getLStringType();
-    LConstantType constant = version.getLConstantType();
-    LAbsLineInfoType abslineinfo = new LAbsLineInfoType();
-    LLocalType local = new LLocalType();
-    LUpvalueType upvalue = version.getLUpvalueType();
-    LFunctionType function = version.getLFunctionType();
-    CodeExtract extract = getCodeExtract();
-    
-    if(integer == null) {
-      integer = BIntegerType.create54();
-      sizeT = integer;
-    }
-    
-    LHeader lheader = new LHeader(format, endianness, integer, sizeT, bool, number, linteger, lfloat, string, constant, abslineinfo, local, upvalue, function, extract);
-    BHeader header = new BHeader(version, lheader);
-    LFunction main = convert_function(header, this.main);
-    header = new BHeader(version, lheader, main);
-    
-    header.write(out);
-  }
-  
-  private LFunction convert_function(BHeader header, AssemblerFunction function) {
-    int i;
-    int[] code = new int[function.code.size()];
-    i = 0;
-    for(int codepoint : function.code) {
-      code[i++] = codepoint;
-    }
-    int[] lines = new int[function.lines.size()];
-    i = 0;
-    for(int line : function.lines) {
-      lines[i++] = line;
-    }
-    LAbsLineInfo[] abslineinfo = new LAbsLineInfo[function.abslineinfo.size()];
-    i = 0;
-    for(AssemblerAbsLineInfo info : function.abslineinfo) {
-      abslineinfo[i++] = new LAbsLineInfo(info.pc, info.line);
-    }
-    LLocal[] locals = new LLocal[function.locals.size()];
-    i = 0;
-    for(AssemblerLocal local : function.locals) {
-      locals[i++] = new LLocal(convert_string(header, local.name), new BInteger(local.begin), new BInteger(local.end));
-    }
-    LObject[] constants = new LObject[function.constants.size()];
-    i = 0;
-    for(AssemblerConstant constant : function.constants) {
-      LObject object;
-      switch(constant.type) {
-      case NIL:
-        object = LNil.NIL;
-        break;
-      case BOOLEAN:
-        object = constant.booleanValue ? LBoolean.LTRUE : LBoolean.LFALSE;
-        break;
-      case NUMBER:
-        object = header.number.create(constant.numberValue);
-        break;
-      case INTEGER:
-        object = header.linteger.create(constant.integerValue);
-        break;
-      case FLOAT:
-        object = header.lfloat.create(constant.numberValue);
-        break;
-      case STRING:
-        object = convert_string(header, constant.stringValue);
-        break;
-      case LONGSTRING:
-        object = convert_long_string(header, constant.stringValue);
-        break;
-      case NAN:
-        if(header.number != null) {
-          object = header.number.createNaN(constant.nanValue);
-        } else {
-          object = header.lfloat.createNaN(constant.nanValue);
+
+    public void processHeaderDirective(Assembler a, Directive d) throws AssemblerException, IOException {
+        if (d != Directive.OP && processed_directives.contains(d)) {
+            throw new AssemblerException("Duplicate " + d.name() + " directive");
         }
-        break;
-      default:
-        throw new IllegalStateException();
-      }
-      constants[i++] = object;
+        processed_directives.add(d);
+        switch (d) {
+            case FORMAT -> format = a.getInteger();
+            case ENDIANNESS -> {
+                var endiannessName = a.getName();
+                switch (endiannessName) {
+                    case "LITTLE" -> endianness = LHeader.LEndianness.LITTLE;
+                    case "BIG" -> endianness = LHeader.LEndianness.BIG;
+                    default -> throw new AssemblerException("Unknown endianness \"" + endiannessName + "\"");
+                }
+            }
+            case INT_SIZE -> {
+                int_size = a.getInteger();
+                integer = BIntegerType.create50Type(true, int_size, version.allownegativeint.get());
+            }
+            case SIZE_T_SIZE -> {
+                size_t_size = a.getInteger();
+                sizeT = BIntegerType.create50Type(false, size_t_size, false);
+            }
+            case INSTRUCTION_SIZE -> instruction_size = a.getInteger();
+            case SIZE_OP -> op_size = a.getInteger();
+            case SIZE_A -> a_size = a.getInteger();
+            case SIZE_B -> b_size = a.getInteger();
+            case SIZE_C -> c_size = a.getInteger();
+            case NUMBER_FORMAT -> {
+                var numberTypeName = a.getName();
+                switch (numberTypeName) {
+                    case "integer" -> number_integral = true;
+                    case "float" -> number_integral = false;
+                    default -> throw new AssemblerException("Unknown number_format \"" + numberTypeName + "\"");
+                }
+                number_size = a.getInteger();
+                number = new LNumberType(number_size, number_integral, NumberMode.MODE_NUMBER);
+            }
+            case INTEGER_FORMAT -> linteger = new LNumberType(a.getInteger(), true, NumberMode.MODE_INTEGER);
+            case FLOAT_FORMAT -> lfloat = new LNumberType(a.getInteger(), false, NumberMode.MODE_FLOAT);
+            case OP -> {
+                if (useropmap == null) {
+                    useropmap = new HashMap<>();
+                }
+                var opcode = a.getInteger();
+                var name = a.getName();
+                var op = version.getOpcodeMap().get(name);
+                if (op == null) {
+                    throw new AssemblerException("Unknown op name \"" + name + "\"");
+                }
+                useropmap.put(opcode, op);
+            }
+            default -> throw new IllegalStateException("Unhandled directive: " + d);
+        }
     }
-    LUpvalue[] upvalues = new LUpvalue[function.upvalues.size()];
-    i = 0;
-    for(AssemblerUpvalue upvalue : function.upvalues) {
-      LUpvalue lup = new LUpvalue();
-      lup.bname = convert_string(header, upvalue.name);
-      lup.idx = upvalue.index;
-      lup.instack = upvalue.instack;
-      upvalues[i++] = lup;
+
+    public CodeExtract getCodeExtract() {
+        if (extract == null) {
+            extract = new CodeExtract(version, op_size, a_size, b_size, c_size);
+        }
+        return extract;
     }
-    LFunction[] functions = new LFunction[function.children.size()];
-    i = 0;
-    for(AssemblerFunction f : function.children) {
-      functions[i++] = convert_function(header, f);
+
+    public void processNewFunction(Assembler a) throws AssemblerException, IOException {
+        var name = a.getName();
+        var parts = name.split("/");
+        if (main == null) {
+            if (parts.length != 1)
+                throw new AssemblerException("First (main) function declaration must not have a \"/\" in the name");
+            main = new AssemblerFunction(this, null, name);
+            current = main;
+        } else {
+            if (parts.length == 1 || !parts[0].equals(main.name))
+                throw new AssemblerException("Function \"" + name + "\" isn't contained in the main function");
+            var parent = main.getInnerParent(parts, 1);
+            current = parent.addChild(parts[parts.length - 1]);
+        }
     }
-    return new LFunction(
-      header,
-      convert_string(header, function.source),
-      function.linedefined,
-      function.lastlinedefined,
-      code,
-      lines,
-      abslineinfo,
-      locals,
-      constants,
-      upvalues,
-      functions,
-      function.maxStackSize,
-      function.upvalues.size(),
-      function.numParams,
-      function.vararg
-   );
-  }
-  
-  private LString convert_string(BHeader header, String string) {
-    if(string == null) {
-      return LString.NULL;
-    } else {
-      return new LString(string, '\0');
+
+    public void processFunctionDirective(Assembler a, Directive d) throws AssemblerException, IOException {
+        if (current == null) {
+            throw new AssemblerException("Misplaced function directive before declaration of any function");
+        }
+        current.processFunctionDirective(a, d);
     }
-  }
-  
-  private LString convert_long_string(BHeader header, String string) {
-    return new LString(string, '\0', true);
-  }
+
+    public void processOp(Assembler a, Op op, int opcode) throws AssemblerException, IOException {
+        if (current == null) {
+            throw new AssemblerException("Misplaced code before declaration of any function");
+        }
+        current.processOp(a, getCodeExtract(), op, opcode);
+    }
+
+    public void fixup() throws AssemblerException {
+        main.fixup(getCodeExtract());
+    }
+
+    public void write(OutputStream out) throws AssemblerException, IOException {
+        var bool = new LBooleanType();
+        var string = version.getLStringType();
+        var constant = version.getLConstantType();
+        var abslineinfo = new LAbsLineInfoType();
+        var local = new LLocalType();
+        var upvalue = version.getLUpvalueType();
+        var function = version.getLFunctionType();
+        var extract = getCodeExtract();
+
+        if (integer == null) {
+            integer = BIntegerType.create54();
+            sizeT = integer;
+        }
+
+        var lheader = new LHeader(format, endianness, integer, sizeT, bool, number, linteger, lfloat, string, constant, abslineinfo, local, upvalue, function, extract);
+        var header = new BHeader(version, lheader);
+        var main = convert_function(header, this.main);
+        header = new BHeader(version, lheader, main);
+
+        header.write(out);
+    }
+
+    private LFunction convert_function(BHeader header, AssemblerFunction function) {
+        int i;
+        var code = new int[function.code.size()];
+        i = 0;
+        for (int codepoint : function.code) {
+            code[i++] = codepoint;
+        }
+        var lines = new int[function.lines.size()];
+        i = 0;
+        for (int line : function.lines) {
+            lines[i++] = line;
+        }
+        var abslineinfo = new LAbsLineInfo[function.abslineinfo.size()];
+        i = 0;
+        for (var info : function.abslineinfo) {
+            abslineinfo[i++] = new LAbsLineInfo(info.pc, info.line);
+        }
+        var locals = new LLocal[function.locals.size()];
+        i = 0;
+        for (var local : function.locals) {
+            locals[i++] = new LLocal(convert_string(local.name), new BInteger(local.begin), new BInteger(local.end));
+        }
+        var constants = new LObject[function.constants.size()];
+        i = 0;
+        for (var constant : function.constants) {
+            LObject object;
+            switch (constant.type) {
+                case NIL -> object = LNil.NIL;
+                case BOOLEAN -> object = constant.booleanValue ? LBoolean.LTRUE : LBoolean.LFALSE;
+                case NUMBER -> object = header.number.create(constant.numberValue);
+                case INTEGER -> object = header.linteger.create(constant.integerValue);
+                case FLOAT -> object = header.lfloat.create(constant.numberValue);
+                case STRING -> object = convert_string(constant.stringValue);
+                case LONGSTRING -> object = convert_long_string(constant.stringValue);
+                case NAN -> {
+                    if (header.number != null) {
+                        object = header.number.createNaN(constant.nanValue);
+                    } else {
+                        object = header.lfloat.createNaN(constant.nanValue);
+                    }
+                }
+                default -> throw new IllegalStateException();
+            }
+            constants[i++] = object;
+        }
+        var upvalues = new LUpvalue[function.upvalues.size()];
+        i = 0;
+        for (var upvalue : function.upvalues) {
+            var lup = new LUpvalue();
+            lup.bname = convert_string(upvalue.name);
+            lup.idx = upvalue.index;
+            lup.instack = upvalue.instack;
+            upvalues[i++] = lup;
+        }
+        var functions = new LFunction[function.children.size()];
+        i = 0;
+        for (var f : function.children) {
+            functions[i++] = convert_function(header, f);
+        }
+        return new LFunction(
+                header,
+                convert_string(function.source),
+                function.linedefined,
+                function.lastlinedefined,
+                code,
+                lines,
+                abslineinfo,
+                locals,
+                constants,
+                upvalues,
+                functions,
+                function.maxStackSize,
+                function.upvalues.size(),
+                function.numParams,
+                function.vararg
+        );
+    }
+
+    private LString convert_string(String string) {
+        if (string == null) {
+            return LString.NULL;
+        } else {
+            return new LString(string, '\0');
+        }
+    }
+
+    private LString convert_long_string(String string) {
+        return new LString(string, '\0', true);
+    }
 
 }
 
 public class Assembler {
 
-  private Configuration config;
-  private Tokenizer t;
-  private OutputStream out;
-  private Version version;
-  
-  public Assembler(Configuration config, InputStream in, OutputStream out) {
-    this.config = config;
-    t = new Tokenizer(in);
-    this.out = out;
-  }
-  
-  public void assemble() throws AssemblerException, IOException {
-    
-    String tok = t.next();
-    if(!tok.equals(".version")) throw new AssemblerException("First directive must be .version, instead was \"" + tok + "\"");
-    tok = t.next();
-    
-    int major;
-    int minor;
-    String[] parts = tok.split("\\.");
-    if(parts.length == 2) {
-      try {
-        major = Integer.valueOf(parts[0]);
-        minor = Integer.valueOf(parts[1]);
-      } catch(NumberFormatException e) {
-        throw new AssemblerException("Unsupported version " + tok);
-      }
-    } else {
-      throw new AssemblerException("Unsupported version " + tok);
+    private final Configuration config;
+    private final Tokenizer t;
+    private final OutputStream out;
+    private Version version;
+
+    public Assembler(Configuration config, InputStream in, OutputStream out) {
+        this.config = config;
+        t = new Tokenizer(in);
+        this.out = out;
     }
-    if(major < 0 || major > 0xF || minor < 0 || minor > 0xF) {
-      throw new AssemblerException("Unsupported version " + tok);
-    }
-    
-    version = Version.getVersion(config, major, minor);
-    
-    if(version == null) {
-      throw new AssemblerException("Unsupported version " + tok);
-    }
-    
-    Map<String, Op> oplookup = null;
-    Map<Op, Integer> opcodelookup = null;
-    
-    AssemblerChunk chunk = new AssemblerChunk(version);
-    boolean opinit = false;
-    
-    while((tok = t.next()) != null) {
-      Directive d = Directive.lookup.get(tok);
-      if(d != null) {
-        switch(d.type) {
-        case HEADER:
-          chunk.processHeaderDirective(this, d);
-          break;
-        case NEWFUNCTION:
-          if(!opinit) {
-            opinit = true;
-            OpcodeMap opmap;
-            if(chunk.useropmap != null) {
-              opmap = new OpcodeMap(chunk.useropmap);
-            } else {
-              opmap = version.getOpcodeMap();
+
+    public void assemble() throws AssemblerException, IOException {
+
+        var tok = t.next();
+        if (!tok.equals(".version"))
+            throw new AssemblerException("First directive must be .version, instead was \"" + tok + "\"");
+        tok = t.next();
+
+        int major;
+        int minor;
+        var parts = tok.split("\\.");
+        if (parts.length == 2) {
+            try {
+                major = Integer.parseInt(parts[0]);
+                minor = Integer.parseInt(parts[1]);
+            } catch (NumberFormatException e) {
+                throw new AssemblerException("Unsupported version " + tok);
             }
-            oplookup = new HashMap<String, Op>();
-            opcodelookup = new HashMap<Op, Integer>();
-            for(int i = 0; i < opmap.size(); i++) {
-              Op op = opmap.get(i);
-              if(op != null) {
-                oplookup.put(op.name, op);
-                opcodelookup.put(op, i);
-              }
-            }
-            
-            oplookup.put(Op.EXTRABYTE.name, Op.EXTRABYTE);
-            opcodelookup.put(Op.EXTRABYTE, -1);
-          }
-          
-          chunk.processNewFunction(this);
-          break;
-        case FUNCTION:
-          chunk.processFunctionDirective(this, d);
-          break;
-        default:
-          throw new IllegalStateException();
-        }
-        
-      } else {
-        Op op = oplookup.get(tok);
-        if(op != null) {
-          // TODO:
-          chunk.processOp(this, op, opcodelookup.get(op));
         } else {
-          throw new AssemblerException("Unexpected token \"" + tok + "\"");
+            throw new AssemblerException("Unsupported version " + tok);
         }
-      }
-      
+        if (major < 0 || major > 0xF || minor < 0 || minor > 0xF) {
+            throw new AssemblerException("Unsupported version " + tok);
+        }
+
+        version = Version.getVersion(config, major, minor);
+
+        if (version == null) {
+            throw new AssemblerException("Unsupported version " + tok);
+        }
+
+        Map<String, Op> oplookup = null;
+        Map<Op, Integer> opcodelookup = null;
+
+        var chunk = new AssemblerChunk(version);
+        var opinit = false;
+
+        while ((tok = t.next()) != null) {
+            var d = Directive.lookup.get(tok);
+            if (d != null) {
+                switch (d.type) {
+                    case HEADER -> chunk.processHeaderDirective(this, d);
+                    case NEWFUNCTION -> {
+                        if (!opinit) {
+                            opinit = true;
+                            OpcodeMap opmap;
+                            if (chunk.useropmap != null) {
+                                opmap = new OpcodeMap(chunk.useropmap);
+                            } else {
+                                opmap = version.getOpcodeMap();
+                            }
+                            oplookup = new HashMap<>();
+                            opcodelookup = new HashMap<>();
+                            for (var i = 0; i < opmap.size(); i++) {
+                                var op = opmap.get(i);
+                                if (op != null) {
+                                    oplookup.put(op.name, op);
+                                    opcodelookup.put(op, i);
+                                }
+                            }
+
+                            oplookup.put(Op.EXTRABYTE.name, Op.EXTRABYTE);
+                            opcodelookup.put(Op.EXTRABYTE, -1);
+                        }
+                        chunk.processNewFunction(this);
+                    }
+                    case FUNCTION -> chunk.processFunctionDirective(this, d);
+                    default -> throw new IllegalStateException();
+                }
+
+            } else {
+                var op = oplookup.get(tok);
+                if (op != null) {
+                    // TODO:
+                    chunk.processOp(this, op, opcodelookup.get(op));
+                } else {
+                    throw new AssemblerException("Unexpected token \"" + tok + "\"");
+                }
+            }
+
+        }
+
+        chunk.fixup();
+
+        chunk.write(out);
+
     }
-    
-    chunk.fixup();
-    
-    chunk.write(out);
-    
-  }
-  
-  String getAny() throws AssemblerException, IOException {
-    String s = t.next();
-    if(s == null) throw new AssemblerException("Unexcepted end of file");
-    return s;
-  }
-  
-  String getName() throws AssemblerException, IOException {
-    String s = t.next();
-    if(s == null) throw new AssemblerException("Unexcepted end of file");
-    return s;
-  }
-  
-  String getString() throws AssemblerException, IOException {
-    String s = t.next();
-    if(s == null) throw new AssemblerException("Unexcepted end of file");
-    return StringUtils.fromPrintString(s);
-  }
-  
-  int getInteger() throws AssemblerException, IOException {
-    String s = t.next();
-    if(s == null) throw new AssemblerException("Unexcepted end of file");
-    int i;
-    try {
-      i = Integer.parseInt(s);
-    } catch(NumberFormatException e) {
-      throw new AssemblerException("Excepted number, got \"" + s + "\"");
+
+    String getAny() throws AssemblerException, IOException {
+        var s = t.next();
+        if (s == null) throw new AssemblerException("Unexcepted end of file");
+        return s;
     }
-    return i;
-  }
-  
-  boolean getBoolean() throws AssemblerException, IOException {
-    String s = t.next();
-    if(s == null) throw new AssemblerException("Unexcepted end of file");
-    boolean b;
-    if(s.equals("true")) {
-      b = true;
-    } else if(s.equals("false")) {
-      b = false;
-    } else {
-      throw new AssemblerException("Expected boolean, got \"" + s + "\"");
+
+    String getName() throws AssemblerException, IOException {
+        var s = t.next();
+        if (s == null) throw new AssemblerException("Unexcepted end of file");
+        return s;
     }
-    return b;
-  }
-  
-  int getRegister() throws AssemblerException, IOException {
-    String s = t.next();
-    if(s == null) throw new AssemblerException("Unexcepted end of file");
-    int r;
-    if(s.length() >= 2 && s.charAt(0) == 'r') {
-      try {
-        r = Integer.parseInt(s.substring(1));
-      } catch(NumberFormatException e) {
-        throw new AssemblerException("Excepted register, got \"" + s + "\"");
-      }
-    } else {
-      throw new AssemblerException("Excepted register, got \"" + s + "\"");
+
+    String getString() throws AssemblerException, IOException {
+        var s = t.next();
+        if (s == null) throw new AssemblerException("Unexcepted end of file");
+        return StringUtils.fromPrintString(s);
     }
-    return r;
-  }
-  
-  static class RKInfo {
-    int x;
-    boolean constant;
-  }
-  
-  RKInfo getRegisterK54() throws AssemblerException, IOException {
-    String s = t.next();
-    if(s == null) throw new AssemblerException("Unexcepted end of file");
-    RKInfo rk = new RKInfo();
-    if(s.length() >= 2 && s.charAt(0) == 'r') {
-      rk.constant = false;
-      try {
-        rk.x = Integer.parseInt(s.substring(1));
-      } catch(NumberFormatException e) {
-        throw new AssemblerException("Excepted register, got \"" + s + "\"");
-      }
-    } else if(s.length() >= 2 && s.charAt(0) == 'k') {
-      rk.constant = true;
-      try {
-        rk.x = Integer.parseInt(s.substring(1));
-      } catch(NumberFormatException e) {
-        throw new AssemblerException("Excepted constant, got \"" + s + "\"");
-      }
-    } else {
-      throw new AssemblerException("Excepted register or constant, got \"" + s + "\"");
+
+    int getInteger() throws AssemblerException, IOException {
+        var s = t.next();
+        if (s == null) throw new AssemblerException("Unexcepted end of file");
+        int i;
+        try {
+            i = Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            throw new AssemblerException("Excepted number, got \"" + s + "\"");
+        }
+        return i;
     }
-    return rk;
-  }
-  
-  int getConstant() throws AssemblerException, IOException {
-    String s = t.next();
-    if(s == null) throw new AssemblerException("Unexpected end of file");
-    int k;
-    if(s.length() >= 2 && s.charAt(0) == 'k') {
-      try {
-        k = Integer.parseInt(s.substring(1));
-      } catch(NumberFormatException e) {
-        throw new AssemblerException("Excepted constant, got \"" + s + "\"");
-      }
-    } else {
-      throw new AssemblerException("Excepted constant, got \"" + s + "\"");
+
+    boolean getBoolean() throws AssemblerException, IOException {
+        var s = t.next();
+        if (s == null) throw new AssemblerException("Unexcepted end of file");
+        boolean b;
+        if (s.equals("true")) {
+            b = true;
+        } else if (s.equals("false")) {
+            b = false;
+        } else {
+            throw new AssemblerException("Expected boolean, got \"" + s + "\"");
+        }
+        return b;
     }
-    return k;
-  }
-  
-  int getUpvalue() throws AssemblerException, IOException {
-    String s = t.next();
-    if(s == null) throw new AssemblerException("Unexcepted end of file");
-    int u;
-    if(s.length() >= 2 && s.charAt(0) == 'u') {
-      try {
-        u = Integer.parseInt(s.substring(1));
-      } catch(NumberFormatException e) {
-        throw new AssemblerException("Excepted register, got \"" + s + "\"");
-      }
-    } else {
-      throw new AssemblerException("Excepted register, got \"" + s + "\"");
+
+    int getRegister() throws AssemblerException, IOException {
+        var s = t.next();
+        if (s == null) throw new AssemblerException("Unexcepted end of file");
+        int r;
+        if (s.length() >= 2 && s.charAt(0) == 'r') {
+            try {
+                r = Integer.parseInt(s.substring(1));
+            } catch (NumberFormatException e) {
+                throw new AssemblerException("Excepted register, got \"" + s + "\"");
+            }
+        } else {
+            throw new AssemblerException("Excepted register, got \"" + s + "\"");
+        }
+        return r;
     }
-    return u;
-  }
-  
+
+    RKInfo getRegisterK54() throws AssemblerException, IOException {
+        var s = t.next();
+        if (s == null) throw new AssemblerException("Unexcepted end of file");
+        var rk = new RKInfo();
+        if (s.length() >= 2 && s.charAt(0) == 'r') {
+            rk.constant = false;
+            try {
+                rk.x = Integer.parseInt(s.substring(1));
+            } catch (NumberFormatException e) {
+                throw new AssemblerException("Excepted register, got \"" + s + "\"");
+            }
+        } else if (s.length() >= 2 && s.charAt(0) == 'k') {
+            rk.constant = true;
+            try {
+                rk.x = Integer.parseInt(s.substring(1));
+            } catch (NumberFormatException e) {
+                throw new AssemblerException("Excepted constant, got \"" + s + "\"");
+            }
+        } else {
+            throw new AssemblerException("Excepted register or constant, got \"" + s + "\"");
+        }
+        return rk;
+    }
+
+    int getConstant() throws AssemblerException, IOException {
+        var s = t.next();
+        if (s == null) throw new AssemblerException("Unexpected end of file");
+        int k;
+        if (s.length() >= 2 && s.charAt(0) == 'k') {
+            try {
+                k = Integer.parseInt(s.substring(1));
+            } catch (NumberFormatException e) {
+                throw new AssemblerException("Excepted constant, got \"" + s + "\"");
+            }
+        } else {
+            throw new AssemblerException("Excepted constant, got \"" + s + "\"");
+        }
+        return k;
+    }
+
+    int getUpvalue() throws AssemblerException, IOException {
+        var s = t.next();
+        if (s == null) throw new AssemblerException("Unexcepted end of file");
+        int u;
+        if (s.length() >= 2 && s.charAt(0) == 'u') {
+            try {
+                u = Integer.parseInt(s.substring(1));
+            } catch (NumberFormatException e) {
+                throw new AssemblerException("Excepted register, got \"" + s + "\"");
+            }
+        } else {
+            throw new AssemblerException("Excepted register, got \"" + s + "\"");
+        }
+        return u;
+    }
+
+    static class RKInfo {
+        int x;
+        boolean constant;
+    }
+
 }

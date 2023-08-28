@@ -6,37 +6,37 @@ import me.hydos.unluac.decompile.Walker;
 
 public class UnaryExpression extends Expression {
 
-  private final String op;
-  private final Expression expression;
-  
-  public UnaryExpression(String op, Expression expression, int precedence) {
-    super(precedence);
-    this.op = op;
-    this.expression = expression;
-  }
+    private final String op;
+    private final Expression expression;
 
-  @Override
-  public void walk(Walker w) {
-    w.visitExpression(this);
-    expression.walk(w);
-  }
-  
-  @Override
-  public boolean isUngrouped() {
-    return true;
-  }
-  
-  @Override
-  public int getConstantIndex() {
-    return expression.getConstantIndex();
-  }
-  
-  @Override
-  public void print(Decompiler d, Output out) {
-    out.print(op);
-    if(precedence > expression.precedence) out.print("(");
-    expression.print(d, out);
-    if(precedence > expression.precedence) out.print(")");
-  }
-  
+    public UnaryExpression(String op, Expression expression, int precedence) {
+        super(precedence);
+        this.op = op;
+        this.expression = expression;
+    }
+
+    @Override
+    public void walk(Walker w) {
+        w.visitExpression(this);
+        expression.walk(w);
+    }
+
+    @Override
+    public void print(Decompiler d, Output out) {
+        out.print(op);
+        if (precedence > expression.precedence) out.print("(");
+        expression.print(d, out);
+        if (precedence > expression.precedence) out.print(")");
+    }
+
+    @Override
+    public int getConstantIndex() {
+        return expression.getConstantIndex();
+    }
+
+    @Override
+    public boolean isUngrouped() {
+        return true;
+    }
+
 }

@@ -8,57 +8,57 @@ import me.hydos.unluac.parse.LFunction;
 
 public class Goto extends Block {
 
-  public final int target;
-  
-  public Goto(LFunction function, int line, int target) {
-    super(function, line, line, 2);
-    this.target = target;
-  }
+    public final int target;
 
-  @Override
-  public void walk(Walker w) {
-    w.visitStatement(this);
-  }
-  
-  @Override
-  public void addStatement(Statement statement) {
-    throw new IllegalStateException();
-  }
+    public Goto(LFunction function, int line, int target) {
+        super(function, line, line, 2);
+        this.target = target;
+    }
 
-  @Override
-  public boolean isContainer() {
-    return false;
-  }
-  
-  @Override
-  public boolean isEmpty() {
-    return true;
-  }
-  
-  @Override
-  public boolean breakable() {
-    return false;
-  }
-  
-  @Override
-  public boolean hasHeader() {
-    return true;
-  }
-  
-  @Override
-  public boolean isUnprotected() {
-    //Actually, it is unprotected, but not really a block
-    return false;
-  }
+    @Override
+    public void addStatement(Statement statement) {
+        throw new IllegalStateException();
+    }
 
-  @Override
-  public int getLoopback() {
-    throw new IllegalStateException();
-  }
+    @Override
+    public boolean hasHeader() {
+        return true;
+    }
 
-  @Override
-  public void print(Decompiler d, Output out) {
-    out.print("goto lbl_" + target);
-  }
-  
+    @Override
+    public boolean isUnprotected() {
+        //Actually, it is unprotected, but not really a block
+        return false;
+    }
+
+    @Override
+    public int getLoopback() {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean breakable() {
+        return false;
+    }
+
+    @Override
+    public boolean isContainer() {
+        return false;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return true;
+    }
+
+    @Override
+    public void print(Decompiler d, Output out) {
+        out.print("goto lbl_" + target);
+    }
+
+    @Override
+    public void walk(Walker w) {
+        w.visitStatement(this);
+    }
+
 }

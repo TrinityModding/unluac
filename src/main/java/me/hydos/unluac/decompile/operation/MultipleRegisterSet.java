@@ -1,43 +1,42 @@
 package me.hydos.unluac.decompile.operation;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.block.Block;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.statement.Assignment;
 import me.hydos.unluac.decompile.statement.Statement;
 
+import java.util.Collections;
+import java.util.List;
+
 public class MultipleRegisterSet extends Operation {
 
-  public final int registerFirst;
-  public final int registerLast;
-  public final Expression value;
-  
-  public MultipleRegisterSet(int line, int registerFirst, int registerLast, Expression value) {
-    super(line);
-    this.registerFirst = registerFirst;
-    this.registerLast = registerLast;
-    this.value = value;
-  }
+    public final int registerFirst;
+    public final int registerLast;
+    public final Expression value;
 
-  @Override
-  public List<Statement> process(Registers r, Block block) {
-    int count = 0;
-    Assignment assignment = new Assignment();
-    for(int register = registerFirst; register <= registerLast; register++) {
-      r.setValue(register, line, value);
-      if(r.isAssignable(register, line)) {
-        assignment.addLast(r.getTarget(register, line), value, line);
-        count++;
-      }
+    public MultipleRegisterSet(int line, int registerFirst, int registerLast, Expression value) {
+        super(line);
+        this.registerFirst = registerFirst;
+        this.registerLast = registerLast;
+        this.value = value;
     }
-    if(count > 0) {
-      return Arrays.asList(assignment);
-    } else {
-      return Collections.emptyList();
+
+    @Override
+    public List<Statement> process(Registers r, Block block) {
+        var count = 0;
+        var assignment = new Assignment();
+        for (var register = registerFirst; register <= registerLast; register++) {
+            r.setValue(register, line, value);
+            if (r.isAssignable(register, line)) {
+                assignment.addLast(r.getTarget(register, line), value, line);
+                count++;
+            }
+        }
+        if (count > 0) {
+            return List.of(assignment);
+        } else {
+            return Collections.emptyList();
+        }
     }
-  }
 }
