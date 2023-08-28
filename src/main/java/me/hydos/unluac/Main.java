@@ -14,11 +14,10 @@ import me.hydos.unluac.util.FileUtils;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.FileChannel;
 
+@Deprecated // FIXME: combination of logic and CLI handling. Tisk tisk...
 public class Main {
-
-    public static final String version = "1.2.3.511";
+    public static final String VERSION = "1.2.3.511";
 
     public static void main(String[] args) {
         String fn = null;
@@ -64,7 +63,7 @@ public class Main {
         } else {
             switch (config.mode) {
                 case HELP -> help();
-                case VERSION -> System.out.println(version);
+                case VERSION -> System.out.println(VERSION);
                 case DECOMPILE -> {
                     LFunction lmain = null;
                     try {
@@ -133,7 +132,7 @@ public class Main {
     }
 
     private static void print_unluac_string(PrintStream out) {
-        out.println("unluac v" + version);
+        out.println("unluac v" + VERSION);
     }
 
     private static void print_usage(PrintStream out) {

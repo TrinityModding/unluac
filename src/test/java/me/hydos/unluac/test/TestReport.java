@@ -16,9 +16,9 @@ public class TestReport {
         if (failed == 0 && skipped == 0) {
             out.println("All tests passed!");
         } else {
-            for (var failed : failedTests) {
+            for (var failed : failedTests)
                 out.println("Failed: " + failed);
-            }
+
             for (var skipped : skippedTests) {
                 out.println("Skipped: " + skipped);
             }

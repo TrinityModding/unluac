@@ -1,6 +1,6 @@
 package me.hydos.unluac.test;
 
-public class TestFile {
+public class UnLuaCTest {
 
     public static final int DEFAULT_VERSION = 0x50;
 
@@ -10,15 +10,15 @@ public class TestFile {
     public final int version;
     public final int flags;
 
-    public TestFile(String name) {
+    public UnLuaCTest(String name) {
         this(name, DEFAULT_VERSION, 0);
     }
 
-    public TestFile(String name, int version) {
+    public UnLuaCTest(String name, int version) {
         this(name, version, 0);
     }
 
-    public TestFile(String name, int version, int flags) {
+    public UnLuaCTest(String name, int version, int flags) {
         this.name = name;
         this.version = version;
         this.flags = flags;
@@ -27,5 +27,4 @@ public class TestFile {
     public boolean getFlag(int flag) {
         return (flags & flag) == flag;
     }
-
 }

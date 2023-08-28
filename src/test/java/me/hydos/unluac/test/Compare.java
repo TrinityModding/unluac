@@ -7,10 +7,10 @@ import me.hydos.unluac.parse.LLocal;
 import me.hydos.unluac.parse.LObject;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class Compare {
 
@@ -24,7 +24,7 @@ public class Compare {
      * Determines if two files of lua bytecode are the same
      * (except possibly for line numbers).
      */
-    public boolean bytecode_equal(String file1, String file2) {
+    public boolean bytecodeEqual(Path file1, Path file2) {
         var main1 = file_to_function(file1);
         var main2 = file_to_function(file2);
         return function_equal(main1, main2);
@@ -123,27 +123,19 @@ public class Compare {
     }
 
     public boolean local_equal(LLocal l1, LLocal l2) {
-        if (l1.start != l2.start) {
-            return false;
-        }
-        if (l1.end != l2.end) {
-            return false;
-        }
+        if (l1.start != l2.start) return false;
+        if (l1.end != l2.end) return false;
         return l1.name.equals(l2.name);
     }
 
-    public LFunction file_to_function(String filename) {
-        try (var file = new RandomAccessFile(filename, "r")) {
-            var buffer = ByteBuffer.allocate((int) file.length());
-            buffer.order(ByteOrder.LITTLE_ENDIAN);
-            var len = (int) file.length();
-            var in = file.getChannel();
-            while (len > 0) len -= in.read(buffer);
-            buffer.rewind();
-            var header = new BHeader(buffer, new Configuration());
-            return header.main;
+    public LFunction file_to_function(Path path) {
+        try {
+            return new BHeader(
+                    ByteBuffer.wrap(Files.readAllBytes(path)).order(ByteOrder.LITTLE_ENDIAN),
+                    new Configuration()
+            ).main;
         } catch (IOException e) {
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
@@ -151,5 +143,4 @@ public class Compare {
         NORMAL,
         FULL,
     }
-
 }

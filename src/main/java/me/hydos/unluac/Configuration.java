@@ -15,6 +15,7 @@ public class Configuration {
     public boolean luaj;
     public String opmap;
     public String output;
+
     public Configuration() {
         rawstring = false;
         mode = Mode.DECOMPILE;
@@ -24,6 +25,7 @@ public class Configuration {
         opmap = null;
         output = null;
     }
+
     public Configuration(Configuration other) {
         rawstring = other.rawstring;
         mode = other.mode;
