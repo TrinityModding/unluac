@@ -7,7 +7,6 @@ import me.hydos.unluac.test.legacy.cmd.LuaCompiler;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.ThrowingConsumer;
-import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
@@ -46,6 +45,9 @@ class DecompileTests {
             } catch (LuaError e) {
                 throw new RuntimeException("Error loading or executing Lua bytecode", e);
             }
+            // Extra (not mandatory) step: check for 1 to 1 source
+            if (Files.mismatch(originalSrc, decompiledSrc) != -1)
+                System.out.println("Warning: code does is not completely identical. You can most likely ignore this");
         };
 
         return DynamicTest.stream(TESTS.stream(), input -> input, testExecutor);
