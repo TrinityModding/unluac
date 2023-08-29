@@ -403,9 +403,7 @@ public class Decompiler {
                 }
                 operations.add(new RegisterSet(line, A, Expression.make(op, r.getExpression(B, line), ConstantExpression.createInteger(immediate))));
             }
-            case SHLI -> {
-                operations.add(new RegisterSet(line, A, Expression.make(Expression.BinaryOperation.SHL, ConstantExpression.createInteger(code.sC(line)), r.getExpression(B, line))));
-            }
+            case SHLI -> operations.add(new RegisterSet(line, A, Expression.make(Expression.BinaryOperation.SHL, ConstantExpression.createInteger(code.sC(line)), r.getExpression(B, line))));
             case MMBIN, MMBINI, MMBINK -> {
             }
             /* Do nothing ... handled with preceding operation. */

@@ -2,3 +2,6 @@
 .idea/
 out/
 build/
+
+*.decompiled.lua
+*.blua

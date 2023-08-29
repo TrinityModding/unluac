@@ -21,6 +21,12 @@ dependencies {
     testImplementation(files("deps/luaj-3.0.3.jar"))
 }
 
+tasks.withType<Jar> {
+    manifest {
+        attributes["Main-Class"] = "me.hydos.unluac.Main"
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
     maxHeapSize = "4G"
