@@ -4,13 +4,13 @@ import me.hydos.unluac.decompile.CloseType;
 import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 public class ElseEndBlock extends ContainerBlock {
 
     public IfThenElseBlock partner;
 
-    public ElseEndBlock(LFunction function, int begin, int end, CloseType closeType, int closeLine) {
+    public ElseEndBlock(BFunction function, int begin, int end, CloseType closeType, int closeLine) {
         super(function, begin, end, closeType, closeLine, -1);
     }
 

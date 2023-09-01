@@ -1,6 +1,6 @@
 package me.hydos.unluac.decompile;
 
-import me.hydos.unluac.parse.LLocal;
+import me.hydos.unluac.bytecode.LLocal;
 
 public class Declaration {
 
@@ -20,10 +20,10 @@ public class Declaration {
      */
     public boolean forLoopExplicit = false;
 
-    public Declaration(LLocal local, Code code) {
+    public Declaration(LLocal local, BytecodeReader bytecodeReader) {
         var adjust = 0;
         if (local.start >= 1) {
-            var op = code.op(local.start);
+            var op = bytecodeReader.op(local.start);
             if (op == Op.MMBIN || op == Op.MMBINI || op == Op.MMBINK || op == Op.EXTRAARG) {
                 adjust--;
             }

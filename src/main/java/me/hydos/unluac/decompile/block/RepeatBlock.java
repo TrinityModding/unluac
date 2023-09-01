@@ -4,7 +4,7 @@ import me.hydos.unluac.decompile.*;
 import me.hydos.unluac.decompile.condition.Condition;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 public class RepeatBlock extends ContainerBlock {
 
@@ -14,7 +14,7 @@ public class RepeatBlock extends ContainerBlock {
 
     private Expression condexpr;
 
-    public RepeatBlock(LFunction function, Condition cond, int begin, int end, CloseType closeType, int closeLine, boolean extendedRepeatScope, int scopeEnd) {
+    public RepeatBlock(BFunction function, Condition cond, int begin, int end, CloseType closeType, int closeLine, boolean extendedRepeatScope, int scopeEnd) {
         super(function, begin, end, closeType, closeLine, 0);
         this.cond = cond;
         this.extendedRepeatScope = extendedRepeatScope;

@@ -4,7 +4,7 @@ import me.hydos.unluac.decompile.*;
 import me.hydos.unluac.decompile.condition.Condition;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 public class IfThenElseBlock extends ContainerBlock {
 
@@ -14,7 +14,7 @@ public class IfThenElseBlock extends ContainerBlock {
 
     private Expression condexpr;
 
-    public IfThenElseBlock(LFunction function, Condition cond, int begin, int end, int elseTarget, CloseType closeType, int closeLine) {
+    public IfThenElseBlock(BFunction function, Condition cond, int begin, int end, int elseTarget, CloseType closeType, int closeLine) {
         super(function, begin, end, closeType, closeLine, -1);
         this.cond = cond;
         this.elseTarget = elseTarget;

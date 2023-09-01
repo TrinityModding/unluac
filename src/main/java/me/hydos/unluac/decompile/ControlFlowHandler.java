@@ -3,11 +3,14 @@ package me.hydos.unluac.decompile;
 import me.hydos.unluac.Version;
 import me.hydos.unluac.decompile.block.*;
 import me.hydos.unluac.decompile.condition.*;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.util.Stack;
 
 import java.util.*;
 
+/**
+ * Handles taking bytecode lua and giving us a more lua styled output
+ */
 public class ControlFlowHandler {
 
     public static final boolean verbose = false;
@@ -16,41 +19,55 @@ public class ControlFlowHandler {
     private ControlFlowHandler() {
     }
 
-    public static Result process(Decompiler d, Registers r) {
+    public static Result process(NewDecompiler d, Registers r) {
         var state = new State();
-        state.d = d;
-        state.function = d.function;
+        state.function = d.bytecode;
         state.r = r;
-        state.code = d.code;
-        state.labels = new boolean[d.code.length + 1];
+        state.bytecodeReader = d.reader;
+        state.labels = new boolean[d.reader.length + 1];
         find_reverse_targets(state);
         find_branches(state);
         combine_branches(state);
         resolve_lines(state);
         initialize_blocks(state);
         find_fixed_blocks(state);
-        find_while_loops(state, d.declList);
+        find_while_loops(state, d.declarations);
         find_repeat_loops(state);
-        find_if_break(state, d.declList);
+        find_if_break(state, d.declarations);
         find_set_blocks(state);
-        find_pseudo_goto_statements(state, d.declList);
-        find_do_blocks(state, d.declList);
+        find_pseudo_goto_statements(state, d.declarations);
+        find_do_blocks(state, d.declarations);
         Collections.sort(state.blocks);
-        // DEBUG: print branches stuff
-    /*
-    Branch b = state.begin_branch;
-    while(b != null) {
-      System.out.println("Branch at " + b.line);
-      System.out.println("\tcondition: " + b.cond);
-      b = b.next;
+        return new Result(state);
     }
-    */
+
+    @Deprecated
+    public static Result process(Decompiler d, Registers r) {
+        var state = new State();
+        state.d = d;
+        state.function = d.function;
+        state.r = r;
+        state.bytecodeReader = d.bytecodeReader;
+        state.labels = new boolean[d.bytecodeReader.length + 1];
+        find_reverse_targets(state);
+        find_branches(state);
+        combine_branches(state);
+        resolve_lines(state);
+        initialize_blocks(state);
+        find_fixed_blocks(state);
+        find_while_loops(state, Arrays.stream(d.declList).toList());
+        find_repeat_loops(state);
+        find_if_break(state, Arrays.stream(d.declList).toList());
+        find_set_blocks(state);
+        find_pseudo_goto_statements(state, Arrays.stream(d.declList).toList());
+        find_do_blocks(state, Arrays.stream(d.declList).toList());
+        Collections.sort(state.blocks);
         return new Result(state);
     }
 
     private static void find_reverse_targets(State state) {
-        var code = state.code;
-        var reverse_targets = state.reverse_targets = new boolean[state.code.length + 1];
+        var code = state.bytecodeReader;
+        var reverse_targets = state.reverse_targets = new boolean[state.bytecodeReader.length + 1];
         for (var line = 1; line <= code.length; line++) {
             if (is_jmp(state, line)) {
                 var target = code.target(line);
@@ -62,9 +79,9 @@ public class ControlFlowHandler {
     }
 
     private static void resolve_lines(State state) {
-        var resolved = new int[state.code.length + 1];
+        var resolved = new int[state.bytecodeReader.length + 1];
         Arrays.fill(resolved, -1);
-        for (var line = 1; line <= state.code.length; line++) {
+        for (var line = 1; line <= state.bytecodeReader.length; line++) {
             var r = line;
             var b = state.branches[line];
             while (b != null && b.type == Branch.Type.jump) {
@@ -80,7 +97,7 @@ public class ControlFlowHandler {
                     b = state.branches[r];
                 }
             }
-            if (r == line && state.code.op(line) == Op.JMP52 && is_close(state, line)) {
+            if (r == line && state.bytecodeReader.op(line) == Op.JMP52 && is_close(state, line)) {
                 r = line + 1;
             }
             resolved[line] = r;
@@ -93,16 +110,16 @@ public class ControlFlowHandler {
             return -1;
         }
         var loadboolblock = -1;
-        var op = state.code.op(target);
+        var op = state.bytecodeReader.op(target);
         if (op == Op.LOADBOOL) {
-            if (state.code.C(target) != 0) {
+            if (state.bytecodeReader.C(target) != 0) {
                 loadboolblock = target;
-            } else if (target - 1 >= 1 && state.code.op(target - 1) == Op.LOADBOOL && state.code.C(target - 1) != 0) {
+            } else if (target - 1 >= 1 && state.bytecodeReader.op(target - 1) == Op.LOADBOOL && state.bytecodeReader.C(target - 1) != 0) {
                 loadboolblock = target - 1;
             }
         } else if (op == Op.LFALSESKIP) {
             loadboolblock = target;
-        } else if (target - 1 >= 1 && op == Op.LOADTRUE && state.code.op(target - 1) == Op.LFALSESKIP) {
+        } else if (target - 1 >= 1 && op == Op.LOADTRUE && state.bytecodeReader.op(target - 1) == Op.LFALSESKIP) {
             loadboolblock = target - 1;
         }
         return loadboolblock;
@@ -110,9 +127,9 @@ public class ControlFlowHandler {
 
     private static void handle_loadboolblock(State state, boolean[] skip, int loadboolblock, Condition c, int line, int target) {
         boolean loadboolvalue;
-        var op = state.code.op(target);
+        var op = state.bytecodeReader.op(target);
         if (op == Op.LOADBOOL) {
-            loadboolvalue = state.code.B(target) != 0;
+            loadboolvalue = state.bytecodeReader.B(target) != 0;
         } else if (op == Op.LFALSESKIP) {
             loadboolvalue = false;
         } else if (op == Op.LOADTRUE) {
@@ -122,10 +139,10 @@ public class ControlFlowHandler {
         }
         var final_line = -1;
         if (loadboolblock - 1 >= 1 && is_jmp(state, loadboolblock - 1)) {
-            var boolskip_target = state.code.target(loadboolblock - 1);
+            var boolskip_target = state.bytecodeReader.target(loadboolblock - 1);
             var boolskip_target_redirected = -1;
             if (is_jmp_raw(state, loadboolblock + 2)) {
-                boolskip_target_redirected = state.code.target(loadboolblock + 2);
+                boolskip_target_redirected = state.bytecodeReader.target(loadboolblock + 2);
             }
             if (boolskip_target == loadboolblock + 2 || boolskip_target == boolskip_target_redirected) {
                 skip[loadboolblock - 1] = true;
@@ -149,7 +166,7 @@ public class ControlFlowHandler {
         } else {
             b = new Branch(line, line, Branch.Type.testset, c, begin, loadboolblock + 2, null);
         }
-        b.target = state.code.A(loadboolblock);
+        b.target = state.bytecodeReader.A(loadboolblock);
         b.inverseValue = inverse;
         insert_branch(state, b);
 
@@ -166,7 +183,7 @@ public class ControlFlowHandler {
     }
 
     private static void handle_test(State state, boolean[] skip, int line, Condition c, int target, boolean invert) {
-        var code = state.code;
+        var code = state.bytecodeReader;
         var loadboolblock = find_loadboolblock(state, target);
         if (loadboolblock >= 1) {
             if (invert) c = c.inverse();
@@ -187,10 +204,10 @@ public class ControlFlowHandler {
     }
 
     private static void handle_testset(State state, boolean[] skip, int line, Condition c, int target, int register, boolean invert) {
-        if (state.r.isNoDebug && find_loadboolblock(state, target) == -1) {
+        if (find_loadboolblock(state, target) == -1) {
             if (invert) c = c.inverse();
             var b = new Branch(line, line, Branch.Type.test, c, line + 2, target, null);
-            b.target = state.code.A(line);
+            b.target = state.bytecodeReader.A(line);
             if (invert) b.inverseValue = true;
             insert_branch(state, b);
             skip[line + 1] = true;
@@ -204,10 +221,10 @@ public class ControlFlowHandler {
         var final_line = target - 1;
         int branch_line;
         var loadboolblock = find_loadboolblock(state, target - 2);
-        if (loadboolblock != -1 && state.code.A(loadboolblock) == register) {
+        if (loadboolblock != -1 && state.bytecodeReader.A(loadboolblock) == register) {
             final_line = loadboolblock;
             if (loadboolblock - 2 >= 1 && is_jmp(state, loadboolblock - 1) &&
-                (state.code.target(loadboolblock - 1) == target || is_jmp_raw(state, target) && state.code.target(loadboolblock - 1) == state.code.target(target))
+                (state.bytecodeReader.target(loadboolblock - 1) == target || is_jmp_raw(state, target) && state.bytecodeReader.target(loadboolblock - 1) == state.bytecodeReader.target(target))
             ) {
                 final_line = loadboolblock - 2;
             }
@@ -223,7 +240,7 @@ public class ControlFlowHandler {
     }
 
     private static void process_condition(State state, boolean[] skip, int line, Condition c, boolean invert) {
-        var target = state.code.target(line + 1);
+        var target = state.bytecodeReader.target(line + 1);
         if (invert) {
             c = c.inverse();
         }
@@ -241,11 +258,11 @@ public class ControlFlowHandler {
     }
 
     private static void find_branches(State state) {
-        var code = state.code;
-        state.branches = new Branch[state.code.length + 1];
-        state.setbranches = new Branch[state.code.length + 1];
-        state.finalsetbranches = new ArrayList<>(state.code.length + 1);
-        for (var i = 0; i <= state.code.length; i++) state.finalsetbranches.add(null);
+        var code = state.bytecodeReader;
+        state.branches = new Branch[state.bytecodeReader.length + 1];
+        state.setbranches = new Branch[state.bytecodeReader.length + 1];
+        state.finalsetbranches = new ArrayList<>(state.bytecodeReader.length + 1);
+        for (var i = 0; i <= state.bytecodeReader.length; i++) state.finalsetbranches.add(null);
         var skip = new boolean[code.length + 1];
         for (var line = 1; line <= code.length; line++) {
             if (!skip[line]) {
@@ -364,12 +381,12 @@ public class ControlFlowHandler {
     private static void find_fixed_blocks(State state) {
         var blocks = state.blocks;
         var r = state.r;
-        var code = state.code;
+        var code = state.bytecodeReader;
         var tforTarget = state.function.header.version.tfortarget.get();
         var forTarget = state.function.header.version.fortarget.get();
-        blocks.add(new OuterBlock(state.function, state.code.length));
+        blocks.add(new OuterBlock(state.function, state.bytecodeReader.length));
 
-        var loop = new boolean[state.code.length + 1];
+        var loop = new boolean[state.bytecodeReader.length + 1];
 
         var b = state.begin_branch;
         while (b != null) {
@@ -499,7 +516,7 @@ public class ControlFlowHandler {
         }
     }
 
-    private static void find_while_loops(State state, Declaration[] declList) {
+    private static void find_while_loops(State state, List<Declaration> declList) {
         var blocks = state.blocks;
         var j = state.end_branch;
         while (j != null) {
@@ -540,9 +557,9 @@ public class ControlFlowHandler {
                     );
                     unredirect(state, loopback, end, j.line, loopback);
                 }
-                if (loop == null && j.line - 5 >= 1 && state.code.op(j.line - 3) == Op.CLOSE
-                    && is_jmp_raw(state, j.line - 2) && state.code.target(j.line - 2) == end
-                    && state.code.op(j.line - 1) == Op.CLOSE
+                if (loop == null && j.line - 5 >= 1 && state.bytecodeReader.op(j.line - 3) == Op.CLOSE
+                    && is_jmp_raw(state, j.line - 2) && state.bytecodeReader.target(j.line - 2) == end
+                    && state.bytecodeReader.op(j.line - 1) == Op.CLOSE
                 ) {
                     b = j.previous;
                     while (b != null && !(is_conditional(b) && b.line2 == j.line - 5)) {
@@ -646,7 +663,7 @@ public class ControlFlowHandler {
         }
     }
 
-    private static boolean splits_decl(int line, int begin, int end, Declaration[] declList) {
+    private static boolean splits_decl(int line, int begin, int end, List<Declaration> declList) {
         for (var decl : declList) {
             if (decl.isSplitBy(line, begin, end)) {
                 return true;
@@ -672,7 +689,7 @@ public class ControlFlowHandler {
         Block block = null;
         if (!stack.isEmpty() && stack_reach(state, stack) <= line) {
             var top = stack.pop();
-            var literalEnd = state.code.target(top.targetFirst - 1);
+            var literalEnd = state.bytecodeReader.target(top.targetFirst - 1);
             if (state.function.header.version.useifbreakrewrite.get() && state.function.header.version.usegoto.get() && top.targetFirst + 1 == top.targetSecond && is_jmp(state, top.targetFirst)) {
                 // If this were actually an if statement, it would have been rewritten. It hasn't been, so it isn't...
                 block = new IfThenEndBlock(state.function, state.r, top.cond.inverse(), top.targetFirst - 1, top.targetFirst - 1);
@@ -738,7 +755,7 @@ public class ControlFlowHandler {
         remove_branch(state, b);
     }
 
-    private static boolean is_hanger_resolvable(State state, Declaration[] declList, Branch hanging, Branch resolver) {
+    private static boolean is_hanger_resolvable(State state, List<Declaration> declList, Branch hanging, Branch resolver) {
         return hanging.targetSecond == resolver.targetFirst
                && enclosing_block(state, hanging.line) == enclosing_block(state, resolver.line)
                && !splits_decl(hanging.line, hanging.targetFirst, resolver.line, declList)
@@ -749,7 +766,7 @@ public class ControlFlowHandler {
         );
     }
 
-    private static boolean is_hanger_resolvable(State state, Declaration[] declList, Branch hanging, Stack<Branch> resolvers) {
+    private static boolean is_hanger_resolvable(State state, List<Declaration> declList, Branch hanging, Stack<Branch> resolvers) {
         for (var i = 0; i < resolvers.size(); i++) {
             if (is_hanger_resolvable(state, declList, hanging, resolvers.peek(i))) {
                 return true;
@@ -765,13 +782,13 @@ public class ControlFlowHandler {
         if (if_block == null) throw new IllegalStateException();
     }
 
-    private static void resolve_hangers(State state, Declaration[] declList, Stack<Branch> stack, Stack<Branch> hanging, Branch b) {
+    private static void resolve_hangers(State state, List<Declaration> declList, Stack<Branch> stack, Stack<Branch> hanging, Branch b) {
         while (!hanging.isEmpty() && is_hanger_resolvable(state, declList, hanging.peek(), b)) {
             resolve_hanger(state, stack, hanging.pop(), b);
         }
     }
 
-    private static void find_if_break(State state, Declaration[] declList) {
+    private static void find_if_break(State state, List<Declaration> declList) {
         var stack = new Stack<Branch>();
         var hanging = new Stack<Branch>();
         var elseStack = new Stack<ElseEndBlock>();
@@ -980,7 +997,8 @@ public class ControlFlowHandler {
                     handled = true; // TODO:
                 }
 
-                if (!handled && (state.function.header.version.usegoto.get() || state.r.isNoDebug)) {
+                if (!handled) {
+                    state.function.header.version.usegoto.get();
                     var block = new Goto(state.function, b.line, b.targetFirst);
                     if (!hanging.isEmpty() && hanging.peek().targetSecond == b.targetFirst && enclosing_block(state, hanging.peek().line) == enclosing) {
                         hangingResolver.push(b);
@@ -988,7 +1006,6 @@ public class ControlFlowHandler {
                     state.blocks.add(block);
                     state.labels[b.targetFirst] = true;
                     remove_branch(state, b);
-                    handled = true;
                 }
             }
             b = b.next;
@@ -1001,25 +1018,16 @@ public class ControlFlowHandler {
             var top = hanging.pop();
             var breakable = enclosing_breakable_block(state, top.line);
             if (breakable != null && breakable.end == top.targetSecond) {
-                if (state.function.header.version.useifbreakrewrite.get() || state.r.isNoDebug) {
-                    Block block = new IfThenEndBlock(state.function, state.r, top.cond.inverse(), top.targetFirst - 1, top.targetFirst - 1);
-                    block.addStatement(new Break(state.function, top.targetFirst - 1, top.targetSecond));
-                    state.blocks.add(block);
-                } else {
-                    throw new IllegalStateException();
-                }
-            } else if (state.function.header.version.usegoto.get() || state.r.isNoDebug) {
-                if (state.function.header.version.useifbreakrewrite.get() || state.r.isNoDebug) {
-                    Block block = new IfThenEndBlock(state.function, state.r, top.cond.inverse(), top.targetFirst - 1, top.targetFirst - 1);
-                    block.addStatement(new Goto(state.function, top.targetFirst - 1, top.targetSecond));
-                    state.blocks.add(block);
-                    state.labels[top.targetSecond] = true;
-                } else {
-                    // No version supports goto without if break rewrite
-                    throw new IllegalStateException();
-                }
+                Block block = new IfThenEndBlock(state.function, state.r, top.cond.inverse(), top.targetFirst - 1, top.targetFirst - 1);
+                block.addStatement(new Break(state.function, top.targetFirst - 1, top.targetSecond));
+                state.blocks.add(block);
             } else {
-                throw new IllegalStateException();
+                state.function.header.version.usegoto.get();
+                state.function.header.version.useifbreakrewrite.get();
+                Block block = new IfThenEndBlock(state.function, state.r, top.cond.inverse(), top.targetFirst - 1, top.targetFirst - 1);
+                block.addStatement(new Goto(state.function, top.targetFirst - 1, top.targetSecond));
+                state.blocks.add(block);
+                state.labels[top.targetSecond] = true;
             }
             remove_branch(state, top);
         }
@@ -1050,14 +1058,14 @@ public class ControlFlowHandler {
             if (is_assignment(b) || b.type == Branch.Type.finalset) {
                 if (b.finalset != null) {
                     var c = b.finalset;
-                    var op = state.code.op(c.line);
+                    var op = state.bytecodeReader.op(c.line);
                     if (c.line >= 2 && (op == Op.MMBIN || op == Op.MMBINI || op == Op.MMBINK || op == Op.EXTRAARG)) {
                         c.line--;
                         if (b.targetFirst == c.line + 1) {
                             b.targetFirst = c.line;
                         }
                     }
-                    while (state.code.isUpvalueDeclaration(c.line)) {
+                    while (state.bytecodeReader.isUpvalueDeclaration(c.line)) {
                         c.line--;
                         if (b.targetFirst == c.line + 1) {
                             b.targetFirst = c.line;
@@ -1118,7 +1126,7 @@ public class ControlFlowHandler {
         return enclosing;
     }
 
-    private static void find_pseudo_goto_statements(State state, Declaration[] declList) {
+    private static void find_pseudo_goto_statements(State state, List<Declaration> declList) {
         var b = state.begin_branch;
         while (b != null) {
             if (b.type == Branch.Type.jump && b.targetFirst > b.line) {
@@ -1207,7 +1215,7 @@ public class ControlFlowHandler {
         }
     }
 
-    private static void find_do_blocks(State state, Declaration[] declList) {
+    private static void find_do_blocks(State state, List<Declaration> declList) {
         List<Block> newBlocks = new ArrayList<>();
         for (var block : state.blocks) {
             if (block.hasCloseLine() && block.getCloseLine() >= 1) {
@@ -1326,7 +1334,7 @@ public class ControlFlowHandler {
     private static Branch combine_conditional_helper(State state, Branch branch0, Branch branch1) {
         if (is_conditional(branch0) && is_conditional(branch1)) {
             var branch0TargetSecond = branch0.targetSecond;
-            if (is_jmp(state, branch1.targetFirst) && state.code.target(branch1.targetFirst) == branch0TargetSecond) {
+            if (is_jmp(state, branch1.targetFirst) && state.bytecodeReader.target(branch1.targetFirst) == branch0TargetSecond) {
                 // Handle redirected target
                 branch0TargetSecond = branch1.targetFirst;
             }
@@ -1591,12 +1599,12 @@ public class ControlFlowHandler {
     }
 
     private static boolean is_jmp_raw(State state, int line) {
-        var op = state.code.op(line);
+        var op = state.bytecodeReader.op(line);
         return op == Op.JMP || op == Op.JMP52 || op == Op.JMP54;
     }
 
     private static boolean is_jmp(State state, int line) {
-        var code = state.code;
+        var code = state.bytecodeReader;
         var op = code.op(line);
         if (op == Op.JMP || op == Op.JMP54) {
             return true;
@@ -1608,7 +1616,7 @@ public class ControlFlowHandler {
     }
 
     private static boolean is_close(State state, int line) {
-        var code = state.code;
+        var code = state.bytecodeReader;
         var op = code.op(line);
         if (op == Op.CLOSE) {
             return true;
@@ -1629,7 +1637,7 @@ public class ControlFlowHandler {
     }
 
     private static int get_close_value(State state, int line) {
-        var code = state.code;
+        var code = state.bytecodeReader;
         var op = code.op(line);
         if (op == Op.CLOSE) {
             return code.A(line);
@@ -1644,7 +1652,7 @@ public class ControlFlowHandler {
         if (line < 1 || !is_close(state, line)) {
             return CloseType.NONE;
         } else {
-            var op = state.code.op(line);
+            var op = state.bytecodeReader.op(line);
             if (op == Op.CLOSE) {
                 return state.function.header.version.closesemantics.get() == Version.CloseSemantics.LUA54 ? CloseType.CLOSE54 : CloseType.CLOSE;
             } else {
@@ -1666,7 +1674,7 @@ public class ControlFlowHandler {
         if (state.reverse_targets[line]) return true;
         var r = state.r;
         if (!r.getNewLocals(line).isEmpty()) return true;
-        var code = state.code;
+        var code = state.bytecodeReader;
         if (code.isUpvalueDeclaration(line)) return false;
         switch (code.op(line)) {
             case MOVE, LOADI, LOADF, LOADK, LOADKX, LOADBOOL, LOADFALSE, LOADTRUE, LFALSESKIP, GETGLOBAL, GETUPVAL, GETTABUP, GETTABUP54, GETTABLE, GETTABLE54, GETI, GETFIELD, NEWTABLE50, NEWTABLE, NEWTABLE54, ADD, SUB, MUL, DIV, IDIV, MOD, POW, BAND, BOR, BXOR, SHL, SHR, UNM, NOT, LEN, BNOT, CONCAT, CONCAT54, CLOSURE, TESTSET, TESTSET54 -> {
@@ -1820,9 +1828,9 @@ public class ControlFlowHandler {
 
     private static class State {
         public Decompiler d;
-        public LFunction function;
+        public BFunction function;
         public Registers r;
-        public Code code;
+        public BytecodeReader bytecodeReader;
         public Branch begin_branch;
         public Branch end_branch;
         public Branch[] branches;

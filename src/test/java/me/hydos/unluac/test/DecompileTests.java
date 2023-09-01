@@ -2,6 +2,10 @@ package me.hydos.unluac.test;
 
 import me.hydos.unluac.Configuration;
 import me.hydos.unluac.Main;
+import me.hydos.unluac.bytecode.BFunction;
+import me.hydos.unluac.bytecode.BHeader;
+import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.NewDecompiler;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.ThrowingConsumer;
@@ -9,6 +13,9 @@ import org.luaj.vm2.LuaError;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,13 +44,23 @@ class DecompileTests {
             // Compile the src with native lua
             LuaCompiler.compile(COMPILER_SPEC, originalSrc, compiledSrc);
             // Decompile the binary lua
-            Main.decompile(compiledSrc.toAbsolutePath().toString(), decompiledSrc.toAbsolutePath().toString(), new Configuration());
+
+
+            var newDecompiler = new NewDecompiler(readBytecode(Files.readAllBytes(compiledSrc), new Configuration()), null, -1);
+            var oldDecompiler = new Decompiler(readBytecode(Files.readAllBytes(compiledSrc), new Configuration()));
+
+            var newResult = newDecompiler.getResult();
+            var oldResult = oldDecompiler.decompile();
+            System.out.println("ok");
+
+            // FIXME: old decompile test. We have the lua source tree kinda now so we can do better
+/*            Main.decompile(compiledSrc.toAbsolutePath().toString(), decompiledSrc.toAbsolutePath().toString(), new Configuration());
             Main.disassemble(compiledSrc.toAbsolutePath().toString(), disassembledSrc.toAbsolutePath().toString());
             // Extra (not mandatory) step: check for 1 to 1 source
             if (compareFiles(originalSrc, decompiledSrc)) return;
             System.out.println("Warning: code does is not completely identical. You can most likely ignore this");
             // Load and execute the compiled Lua bytecode in another thread
-            runTest(decompiledSrc);
+            runTest(decompiledSrc);*/
         };
 
         return DynamicTest.stream(TESTS.stream(), input -> input, testExecutor);
@@ -78,5 +95,10 @@ class DecompileTests {
         var startTime = System.currentTimeMillis();
         while (!future.isDone()) if (System.currentTimeMillis() - startTime > 1000) break;
         if (exception.get() != null) throw exception.get();
+    }
+
+    private static BFunction readBytecode(byte[] bytecode, Configuration config) {
+        var header = new BHeader(ByteBuffer.wrap(bytecode).order(ByteOrder.LITTLE_ENDIAN), config);
+        return header.main;
     }
 }

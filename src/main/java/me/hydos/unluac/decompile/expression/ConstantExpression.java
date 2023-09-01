@@ -4,8 +4,8 @@ import me.hydos.unluac.decompile.Constant;
 import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
-import me.hydos.unluac.parse.LBoolean;
-import me.hydos.unluac.parse.LNil;
+import me.hydos.unluac.bytecode.LBoolean;
+import me.hydos.unluac.bytecode.LNil;
 
 public class ConstantExpression extends Expression {
 

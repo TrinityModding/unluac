@@ -2,26 +2,23 @@ package me.hydos.unluac.decompile;
 
 import me.hydos.unluac.Version;
 import me.hydos.unluac.assemble.Directive;
-import me.hydos.unluac.parse.LAbsLineInfo;
-import me.hydos.unluac.parse.LFunction;
-import me.hydos.unluac.parse.LLocal;
-import me.hydos.unluac.parse.LUpvalue;
+import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.util.StringUtils;
 
 public class Disassembler {
 
-    private final LFunction function;
-    private final Code code;
+    private final BFunction function;
+    private final BytecodeReader bytecodeReader;
     private final String name;
     private final String parent;
 
-    public Disassembler(LFunction function) {
+    public Disassembler(BFunction function) {
         this(function, "main", null);
     }
 
-    private Disassembler(LFunction function, String name, String parent) {
+    private Disassembler(BFunction function, String name, String parent) {
         this.function = function;
-        this.code = new Code(function);
+        this.bytecodeReader = new BytecodeReader(function);
         this.name = name;
         this.parent = parent;
     }
@@ -92,9 +89,9 @@ public class Disassembler {
 
         var label = new boolean[function.code.length];
         for (var line = 1; line <= function.code.length; line++) {
-            var op = code.op(line);
+            var op = bytecodeReader.op(line);
             if (op != null && op.hasJump()) {
-                var target = code.target(line);
+                var target = bytecodeReader.target(line);
                 if (target >= 1 && target <= label.length) {
                     label[target - 1] = true;
                 }
@@ -115,24 +112,24 @@ public class Disassembler {
             if (line <= function.lines.length) {
                 out.print(".line\t" + function.lines[line - 1] + "\t");
             }
-            var op = code.op(line);
+            var op = bytecodeReader.op(line);
             String cpLabel = null;
             if (op != null && op.hasJump()) {
-                var target = code.target(line);
-                if (target >= 1 && target <= code.length) {
+                var target = bytecodeReader.target(line);
+                if (target >= 1 && target <= bytecodeReader.length) {
                     cpLabel = "l" + target;
                 }
             }
             if (op == null) {
-                out.println(Op.defaultToString(print_flags, function, code.codepoint(line), function.header.version, code.getExtractor(), upvalue_count > 0));
+                out.println(Op.defaultToString(print_flags, function, bytecodeReader.codepoint(line), function.header.version, bytecodeReader.getDecoder(), upvalue_count > 0));
             } else {
-                out.println(op.codePointToString(print_flags, function, code.codepoint(line), code.getExtractor(), cpLabel, upvalue_count > 0));
+                out.println(op.codePointToString(print_flags, function, bytecodeReader.codepoint(line), bytecodeReader.getDecoder(), cpLabel, upvalue_count > 0));
             }
             if (upvalue_count > 0) {
                 upvalue_count--;
             } else {
                 if (op == Op.CLOSURE && function.header.version.upvaluedeclarationtype.get() == Version.UpvalueDeclarationType.INLINE) {
-                    var f = code.Bx(line);
+                    var f = bytecodeReader.Bx(line);
                     if (f >= 0 && f < function.functions.length) {
                         var closed = function.functions[f];
                         if (closed.numUpvalues > 0) {

@@ -4,11 +4,11 @@ import me.hydos.unluac.decompile.CloseType;
 import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 public class DoEndBlock extends ContainerBlock {
 
-    public DoEndBlock(LFunction function, int begin, int end) {
+    public DoEndBlock(BFunction function, int begin, int end) {
         super(function, begin, end, CloseType.NONE, -1, 1);
     }
 

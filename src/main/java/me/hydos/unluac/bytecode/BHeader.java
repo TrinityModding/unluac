@@ -1,10 +1,10 @@
-package me.hydos.unluac.parse;
+package me.hydos.unluac.bytecode;
 
 import me.hydos.unluac.Configuration;
 import me.hydos.unluac.Configuration.Mode;
 import me.hydos.unluac.Version;
 import me.hydos.unluac.assemble.Tokenizer;
-import me.hydos.unluac.decompile.CodeExtract;
+import me.hydos.unluac.decompile.BytecodeDecoder;
 import me.hydos.unluac.decompile.Op;
 import me.hydos.unluac.decompile.OpcodeMap;
 
@@ -41,16 +41,16 @@ public class BHeader {
     public final LLocalType local;
     public final LUpvalueType upvalue;
     public final LFunctionType function;
-    public final CodeExtract extractor;
+    public final BytecodeDecoder extractor;
     public final OpcodeMap opmap;
 
-    public final LFunction main;
+    public final BFunction main;
 
     public BHeader(Version version, LHeader lheader) {
         this(version, lheader, null);
     }
 
-    public BHeader(Version version, LHeader lheader, LFunction main) {
+    public BHeader(Version version, LHeader lheader, BFunction main) {
         this.config = null;
         this.version = version;
         this.lheader = lheader;
@@ -156,7 +156,7 @@ public class BHeader {
         if (main.numUpvalues >= 1 && versionNumber >= 0x52 && (main.upvalues[0].name == null || main.upvalues[0].name.isEmpty()) && config.mode == Mode.DECOMPILE) {
             main.upvalues[0].name = "_ENV";
         }
-        main.setLevel(1);
+        main.setDepth(1);
     }
 
     public void write(OutputStream out) throws IOException {

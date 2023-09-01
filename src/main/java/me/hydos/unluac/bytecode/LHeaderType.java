@@ -1,8 +1,8 @@
-package me.hydos.unluac.parse;
+package me.hydos.unluac.bytecode;
 
 import me.hydos.unluac.Version;
 import me.hydos.unluac.assemble.Directive;
-import me.hydos.unluac.decompile.CodeExtract;
+import me.hydos.unluac.decompile.BytecodeDecoder;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -47,7 +47,7 @@ abstract public class LHeaderType extends BObjectType<LHeader> {
         var local = new LLocalType();
         var upvalue = version.getLUpvalueType();
         var function = version.getLFunctionType();
-        var extract = new CodeExtract(header.version, s.sizeOp, s.sizeA, s.sizeB, s.sizeC);
+        var extract = new BytecodeDecoder(header.version, s.sizeOp, s.sizeA, s.sizeB, s.sizeC);
         return new LHeader(s.format, s.endianness, s.integer, s.sizeT, bool, s.number, s.linteger, s.lfloat, string, constant, abslineinfo, local, upvalue, function, extract);
     }
 

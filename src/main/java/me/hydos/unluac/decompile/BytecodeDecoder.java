@@ -2,7 +2,7 @@ package me.hydos.unluac.decompile;
 
 import me.hydos.unluac.Version;
 
-public class CodeExtract {
+public class BytecodeDecoder {
 
     public final Field op;
     public final Field A;
@@ -15,7 +15,8 @@ public class CodeExtract {
     public final Field sBx;
     public final Field x;
     private final int rk_offset;
-    public CodeExtract(Version version, int sizeOp, int sizeA, int sizeB, int sizeC) {
+
+    public BytecodeDecoder(Version version, int sizeOp, int sizeA, int sizeB, int sizeC) {
         switch (version.instructionformat.get()) {
             case LUA50 -> {
                 op = new Field(sizeOp, 0);

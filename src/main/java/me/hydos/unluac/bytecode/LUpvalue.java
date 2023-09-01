@@ -1,4 +1,4 @@
-package me.hydos.unluac.parse;
+package me.hydos.unluac.bytecode;
 
 public class LUpvalue extends BObject {
 

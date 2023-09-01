@@ -1,4 +1,4 @@
-package me.hydos.unluac.parse;
+package me.hydos.unluac.bytecode;
 
 abstract public class LObject extends BObject {
 

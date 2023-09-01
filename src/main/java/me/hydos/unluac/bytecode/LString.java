@@ -1,4 +1,4 @@
-package me.hydos.unluac.parse;
+package me.hydos.unluac.bytecode;
 
 import me.hydos.unluac.decompile.PrintFlag;
 import me.hydos.unluac.util.StringUtils;

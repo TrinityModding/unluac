@@ -2,13 +2,13 @@ package me.hydos.unluac.decompile.block;
 
 import me.hydos.unluac.decompile.CloseType;
 import me.hydos.unluac.decompile.condition.Condition;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 public class WhileBlock51 extends WhileBlock {
 
     private final int unprotectedTarget;
 
-    public WhileBlock51(LFunction function, Condition cond, int begin, int end, int unprotectedTarget, CloseType closeType, int closeLine) {
+    public WhileBlock51(BFunction function, Condition cond, int begin, int end, int unprotectedTarget, CloseType closeType, int closeLine) {
         super(function, cond, begin, end, closeType, closeLine);
         this.unprotectedTarget = unprotectedTarget;
     }

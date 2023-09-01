@@ -3,11 +3,11 @@ package me.hydos.unluac.decompile.block;
 import me.hydos.unluac.Version;
 import me.hydos.unluac.decompile.CloseType;
 import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Function;
+import me.hydos.unluac.decompile.FunctionQuery;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.expression.ConstantExpression;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 public class AlwaysLoop extends ContainerBlock {
 
@@ -15,7 +15,7 @@ public class AlwaysLoop extends ContainerBlock {
     private final Version.WhileFormat whileFormat;
     private ConstantExpression condition;
 
-    public AlwaysLoop(LFunction function, int begin, int end, CloseType closeType, int closeLine, boolean repeat) {
+    public AlwaysLoop(BFunction function, int begin, int end, CloseType closeType, int closeLine, boolean repeat) {
         super(function, begin, end, closeType, closeLine, 0);
         this.repeat = repeat;
         this.whileFormat = function.header.version.whileformat.get();
@@ -85,7 +85,7 @@ public class AlwaysLoop extends ContainerBlock {
     }
 
     @Override
-    public boolean useConstant(Function f, int index) {
+    public boolean useConstant(FunctionQuery f, int index) {
         if (!repeat && condition == null) {
             condition = f.getConstantExpression(index);
             return true;

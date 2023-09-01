@@ -1,7 +1,7 @@
 package me.hydos.unluac.decompile.statement;
 
 import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Function;
+import me.hydos.unluac.decompile.FunctionQuery;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 
@@ -54,7 +54,7 @@ abstract public class Statement {
         return false;
     }
 
-    public boolean useConstant(Function f, int index) {
+    public boolean useConstant(FunctionQuery f, int index) {
         return false;
     }
 

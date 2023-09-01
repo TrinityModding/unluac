@@ -1,8 +1,8 @@
 package me.hydos.unluac.assemble;
 
 import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.parse.LFunction;
-import me.hydos.unluac.parse.LHeader;
+import me.hydos.unluac.bytecode.BFunction;
+import me.hydos.unluac.bytecode.LHeader;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -80,13 +80,13 @@ public enum Directive {
         }
     }
 
-    public void disassemble(Output out, LFunction function, int print_flags) {
+    public void disassemble(Output out, BFunction function, int print_flags) {
         out.print(this.token + "\t");
         switch (this) {
             case SOURCE -> out.println(function.name.toPrintString(print_flags));
             case LINEDEFINED -> out.println(String.valueOf(function.linedefined));
             case LASTLINEDEFINED -> out.println(String.valueOf(function.lastlinedefined));
-            case NUMPARAMS -> out.println(String.valueOf(function.numParams));
+            case NUMPARAMS -> out.println(String.valueOf(function.paramCount));
             case IS_VARARG -> out.println(String.valueOf(function.vararg));
             case MAXSTACKSIZE -> out.println(String.valueOf(function.maximumStackSize));
             default -> throw new IllegalStateException();

@@ -4,7 +4,7 @@ import me.hydos.unluac.decompile.*;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.decompile.target.Target;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 abstract public class ForBlock extends ContainerBlock {
 
@@ -16,7 +16,7 @@ abstract public class ForBlock extends ContainerBlock {
     protected Expression stop;
     protected Expression step;
 
-    public ForBlock(LFunction function, int begin, int end, int register, CloseType closeType, int closeLine, boolean forvarClose) {
+    public ForBlock(BFunction function, int begin, int end, int register, CloseType closeType, int closeLine, boolean forvarClose) {
         super(function, begin, end, closeType, closeLine, -1);
         this.register = register;
         this.forvarClose = forvarClose;

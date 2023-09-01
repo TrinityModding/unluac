@@ -7,13 +7,16 @@ import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Disassembler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.OutputProvider;
-import me.hydos.unluac.parse.BHeader;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BHeader;
+import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.util.FileUtils;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Deprecated // FIXME: combination of logic and CLI handling. Tisk tisk...
 public class Main {
@@ -65,7 +68,7 @@ public class Main {
                 case HELP -> help();
                 case VERSION -> System.out.println(VERSION);
                 case DECOMPILE -> {
-                    LFunction lmain = null;
+                    BFunction lmain = null;
                     try {
                         lmain = file_to_function(fn, config);
                     } catch (IOException e) {
@@ -76,7 +79,7 @@ public class Main {
                     d.print(result, config.getOutput());
                 }
                 case DISASSEMBLE -> {
-                    LFunction lmain = null;
+                    BFunction lmain = null;
                     try {
                         lmain = file_to_function(fn, config);
                     } catch (IOException e) {
@@ -139,17 +142,11 @@ public class Main {
         out.println("  usage: java -jar unluac.jar [options] <file>");
     }
 
-    private static LFunction file_to_function(String fn, Configuration config) throws IOException {
-        try (var file = new RandomAccessFile(fn, "r")) {
-            var buffer = ByteBuffer.allocate((int) file.length());
-            buffer.order(ByteOrder.LITTLE_ENDIAN);
-            var len = (int) file.length();
-            var in = file.getChannel();
-            while (len > 0) len -= in.read(buffer);
-            buffer.rewind();
-            var header = new BHeader(buffer, config);
-            return header.main;
-        }
+    private static BFunction file_to_function(String fn, Configuration config) throws IOException {
+        var buffer = ByteBuffer.wrap(Files.readAllBytes(Paths.get(fn)))
+                .order(ByteOrder.LITTLE_ENDIAN);
+        var header = new BHeader(buffer, config);
+        return header.main;
     }
 
     public static void decompile(String in, String out, Configuration config) throws IOException {

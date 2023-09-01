@@ -1,7 +1,7 @@
 package me.hydos.unluac.decompile;
 
 import me.hydos.unluac.Version;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 import java.util.Objects;
 
@@ -176,7 +176,7 @@ public enum Op {
      * {@link Op#SETLIST} sometimes uses an extra byte without tagging it.
      * This means that the value in the extra byte can be detected as any other opcode unless it is recognized.
      */
-    public boolean hasExtraByte(int codepoint, CodeExtract ex) {
+    public boolean hasExtraByte(int codepoint, BytecodeDecoder ex) {
         if (this == Op.SETLIST) {
             return ex.C.extract(codepoint) == 0;
         } else {
@@ -184,7 +184,7 @@ public enum Op {
         }
     }
 
-    public int jumpField(int codepoint, CodeExtract ex) {
+    public int jumpField(int codepoint, BytecodeDecoder ex) {
         return switch (this) {
             case FORPREP54, TFORPREP54 -> ex.Bx.extract(codepoint);
             case FORLOOP54, TFORLOOP54 -> -ex.Bx.extract(codepoint);
@@ -198,7 +198,7 @@ public enum Op {
      * Returns the target register of the instruction at the given
      * line or -1 if the instruction does not have a unique target.
      */
-    public int target(int codepoint, CodeExtract ex) {
+    public int target(int codepoint, BytecodeDecoder ex) {
         switch (this) {
             case MOVE, LOADI, LOADF, LOADK, LOADKX, LOADBOOL, LOADFALSE, LFALSESKIP, LOADTRUE, GETUPVAL, GETTABUP, GETTABUP54, GETGLOBAL, GETTABLE, GETTABLE54, GETI, GETFIELD, NEWTABLE50, NEWTABLE, NEWTABLE54, ADD, SUB, MUL, DIV, IDIV, MOD, POW, BAND, BOR, BXOR, SHL, SHR, ADD54, SUB54, MUL54, DIV54, IDIV54, MOD54, POW54, BAND54, BOR54, BXOR54, SHL54, SHR54, ADDK, SUBK, MULK, DIVK, IDIVK, MODK, POWK, BANDK, BORK, BXORK, ADDI, SHLI, SHRI, UNM, NOT, LEN, BNOT, CONCAT, CONCAT54, CLOSURE, TEST50, TESTSET, TESTSET54 -> {
                 return ex.A.extract(codepoint);
@@ -288,15 +288,15 @@ public enum Op {
         return false;
     }
 
-    public String codePointToString(int flags, LFunction function, int codepoint, CodeExtract ex, String label, boolean upvalue) {
+    public String codePointToString(int flags, BFunction function, int codepoint, BytecodeDecoder ex, String label, boolean upvalue) {
         return toStringHelper(flags, function, name, operands, codepoint, ex, label, upvalue);
     }
 
-    public static String defaultToString(int flags, LFunction function, int codepoint, Version version, CodeExtract ex, boolean upvalue) {
+    public static String defaultToString(int flags, BFunction function, int codepoint, Version version, BytecodeDecoder ex, boolean upvalue) {
         return toStringHelper(flags, function, String.format("op%02d", ex.op.extract(codepoint)), version.getDefaultOp().operands, codepoint, ex, null, upvalue);
     }
 
-    private static String toStringHelper(int flags, LFunction function, String name, OperandFormat[] operands, int codepoint, CodeExtract ex, String label, boolean upvalue) {
+    private static String toStringHelper(int flags, BFunction function, String name, OperandFormat[] operands, int codepoint, BytecodeDecoder ex, String label, boolean upvalue) {
         var constant = -1;
         var width = 10;
         var b = new StringBuilder();

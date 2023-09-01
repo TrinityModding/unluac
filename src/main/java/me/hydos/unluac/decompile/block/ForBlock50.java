@@ -2,11 +2,11 @@ package me.hydos.unluac.decompile.block;
 
 import me.hydos.unluac.decompile.CloseType;
 import me.hydos.unluac.decompile.Registers;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 public class ForBlock50 extends ForBlock {
 
-    public ForBlock50(LFunction function, int begin, int end, int register, CloseType closeType, int closeLine) {
+    public ForBlock50(BFunction function, int begin, int end, int register, CloseType closeType, int closeLine) {
         super(function, begin, end, register, closeType, closeLine, false);
     }
 

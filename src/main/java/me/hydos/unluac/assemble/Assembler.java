@@ -2,12 +2,11 @@ package me.hydos.unluac.assemble;
 
 import me.hydos.unluac.Configuration;
 import me.hydos.unluac.Version;
-import me.hydos.unluac.decompile.CodeExtract;
+import me.hydos.unluac.decompile.BytecodeDecoder;
 import me.hydos.unluac.decompile.Op;
 import me.hydos.unluac.decompile.OpcodeMap;
-import me.hydos.unluac.decompile.OperandFormat;
-import me.hydos.unluac.parse.*;
-import me.hydos.unluac.parse.LNumberType.NumberMode;
+import me.hydos.unluac.bytecode.*;
+import me.hydos.unluac.bytecode.LNumberType.NumberMode;
 import me.hydos.unluac.util.StringUtils;
 
 import java.io.IOException;
@@ -257,7 +256,7 @@ class AssemblerFunction {
         }
     }
 
-    public void processOp(Assembler a, CodeExtract extract, Op op, int opcode) throws AssemblerException, IOException {
+    public void processOp(Assembler a, BytecodeDecoder extract, Op op, int opcode) throws AssemblerException, IOException {
         if (!hasMaxStackSize) throw new AssemblerException("Expected .maxstacksize before code");
         if (opcode >= 0 && !extract.op.check(opcode)) throw new IllegalStateException("Invalid opcode: " + opcode);
         var codepoint = opcode >= 0 ? extract.op.encode(opcode) : 0;
@@ -340,7 +339,7 @@ class AssemblerFunction {
         code.add(codepoint);
     }
 
-    public void fixup(CodeExtract extract) throws AssemblerException {
+    public void fixup(BytecodeDecoder extract) throws AssemblerException {
         for (var fix : f_fixup) {
             int codepoint = code.get(fix.code_index);
             var x = -1;
@@ -388,7 +387,7 @@ class AssemblerFunction {
 
         int code_index;
         String function;
-        CodeExtract.Field field;
+        BytecodeDecoder.Field field;
 
     }
 
@@ -396,7 +395,7 @@ class AssemblerFunction {
 
         int code_index;
         String label;
-        CodeExtract.Field field;
+        BytecodeDecoder.Field field;
         boolean negate;
 
     }
@@ -426,7 +425,7 @@ class AssemblerChunk {
     public LNumberType lfloat;
     public AssemblerFunction main;
     public AssemblerFunction current;
-    public CodeExtract extract;
+    public BytecodeDecoder extract;
 
     public AssemblerChunk(Version version) {
         this.version = version;
@@ -493,9 +492,9 @@ class AssemblerChunk {
         }
     }
 
-    public CodeExtract getCodeExtract() {
+    public BytecodeDecoder getCodeExtract() {
         if (extract == null) {
-            extract = new CodeExtract(version, op_size, a_size, b_size, c_size);
+            extract = new BytecodeDecoder(version, op_size, a_size, b_size, c_size);
         }
         return extract;
     }
@@ -557,7 +556,7 @@ class AssemblerChunk {
         header.write(out);
     }
 
-    private LFunction convert_function(BHeader header, AssemblerFunction function) {
+    private BFunction convert_function(BHeader header, AssemblerFunction function) {
         int i;
         var code = new int[function.code.size()];
         i = 0;
@@ -611,12 +610,12 @@ class AssemblerChunk {
             lup.instack = upvalue.instack;
             upvalues[i++] = lup;
         }
-        var functions = new LFunction[function.children.size()];
+        var functions = new BFunction[function.children.size()];
         i = 0;
         for (var f : function.children) {
             functions[i++] = convert_function(header, f);
         }
-        return new LFunction(
+        return new BFunction(
                 header,
                 convert_string(function.source),
                 function.linedefined,

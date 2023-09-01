@@ -1,7 +1,7 @@
 package me.hydos.unluac.decompile;
 
 import me.hydos.unluac.Version;
-import me.hydos.unluac.parse.*;
+import me.hydos.unluac.bytecode.*;
 
 public class Constant {
 

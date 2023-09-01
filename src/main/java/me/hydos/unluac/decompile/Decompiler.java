@@ -11,68 +11,67 @@ import me.hydos.unluac.decompile.statement.Assignment;
 import me.hydos.unluac.decompile.statement.Label;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.decompile.target.*;
-import me.hydos.unluac.parse.LFunction;
-import me.hydos.unluac.parse.LUpvalue;
+import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.util.Stack;
 
 import java.util.*;
 
 public class Decompiler {
 
-    public final LFunction function;
-    public final Code code;
+    public final BFunction function;
+    public final BytecodeReader bytecodeReader;
     public final Declaration[] declList;
 
     private final int registers;
     private final int length;
     private final Upvalues upvalues;
 
-    private final Function f;
-    private final LFunction[] functions;
+    private final FunctionQuery query;
+    private final BFunction[] functions;
     private final int params;
     private final int vararg;
 
-    public Decompiler(LFunction function) {
+    public Decompiler(BFunction function) {
         this(function, null, -1);
     }
 
-    public Decompiler(LFunction function, Declaration[] parentDecls, int line) {
-        this.f = new Function(function);
+    public Decompiler(BFunction function, Declaration[] parentDecls, int line) {
+        this.query = new FunctionQuery(function);
         this.function = function;
         registers = function.maximumStackSize;
         length = function.code.length;
-        code = new Code(function);
+        bytecodeReader = new BytecodeReader(function);
         if (function.stripped || getConfiguration().variable == Configuration.VariableMode.NODEBUG) {
             if (getConfiguration().variable == Configuration.VariableMode.FINDER) {
-                declList = VariableFinder.process(this, function.numParams, function.maximumStackSize);
+                declList = VariableFinder.process(this, function.paramCount, function.maximumStackSize);
             } else {
                 declList = new Declaration[function.maximumStackSize];
                 var scopeEnd = length + function.header.version.outerblockscopeadjustment.get();
                 int i;
-                for (i = 0; i < Math.min(function.numParams, function.maximumStackSize); i++) {
-                    declList[i] = new Declaration("A" + i + "_" + function.level, 0, scopeEnd);
+                for (i = 0; i < Math.min(function.paramCount, function.maximumStackSize); i++) {
+                    declList[i] = new Declaration("A" + i + "_" + function.depth, 0, scopeEnd);
                 }
                 if (getVersion().varargtype.get() != Version.VarArgType.ELLIPSIS && (function.vararg & 1) != 0 && i < function.maximumStackSize) {
                     declList[i++] = new Declaration("arg", 0, scopeEnd);
                 }
                 for (; i < function.maximumStackSize; i++) {
-                    declList[i] = new Declaration("L" + i + "_" + function.level, 0, scopeEnd);
+                    declList[i] = new Declaration("L" + i + "_" + function.depth, 0, scopeEnd);
                 }
             }
-        } else if (function.locals.length >= function.numParams) {
+        } else if (function.locals.length >= function.paramCount) {
             declList = new Declaration[function.locals.length];
             for (var i = 0; i < declList.length; i++) {
-                declList[i] = new Declaration(function.locals[i], code);
+                declList[i] = new Declaration(function.locals[i], bytecodeReader);
             }
         } else {
-            declList = new Declaration[function.numParams];
+            declList = new Declaration[function.paramCount];
             for (var i = 0; i < declList.length; i++) {
                 declList[i] = new Declaration("_ARG_" + i + "_", 0, length - 1);
             }
         }
         upvalues = new Upvalues(function, parentDecls, line);
         functions = function.functions;
-        params = function.numParams;
+        params = function.paramCount;
         vararg = function.vararg;
     }
 
@@ -91,12 +90,12 @@ public class Decompiler {
 
     public State decompile() {
         var state = new State();
-        state.r = new Registers(registers, length, declList, f, getNoDebug());
+        state.r = new Registers(registers, length, declList, query, getNoDebug());
         var result = ControlFlowHandler.process(this, state.r);
         var blocks = result.blocks;
         state.outer = blocks.get(0);
         state.labels = result.labels;
-        processSequence(state, blocks, code.length);
+        processSequence(state, blocks, bytecodeReader.length);
         for (var block : blocks) {
             block.resolve(state.r);
         }
@@ -146,7 +145,7 @@ public class Decompiler {
             @Override
             public void visitStatement(Statement statement) {
                 if (unusedConstants.contains(nextConstant)) {
-                    if (statement.useConstant(f, nextConstant)) {
+                    if (statement.useConstant(query, nextConstant)) {
                         nextConstant++;
                     }
                 }
@@ -224,33 +223,33 @@ public class Decompiler {
     }
 
     private void handle50BinOp(List<Operation> operations, State state, int line, Expression.BinaryOperation op) {
-        operations.add(new RegisterSet(line, code.A(line), Expression.make(op, state.r.getKExpression(code.B(line), line), state.r.getKExpression(code.C(line), line))));
+        operations.add(new RegisterSet(line, bytecodeReader.A(line), Expression.make(op, state.r.getKExpression(bytecodeReader.B(line), line), state.r.getKExpression(bytecodeReader.C(line), line))));
     }
 
     private void handle54BinOp(List<Operation> operations, State state, int line, Expression.BinaryOperation op) {
-        operations.add(new RegisterSet(line, code.A(line), Expression.make(op, state.r.getExpression(code.B(line), line), state.r.getExpression(code.C(line), line))));
+        operations.add(new RegisterSet(line, bytecodeReader.A(line), Expression.make(op, state.r.getExpression(bytecodeReader.B(line), line), state.r.getExpression(bytecodeReader.C(line), line))));
     }
 
     private void handle54BinKOp(List<Operation> operations, State state, int line, Expression.BinaryOperation op) {
-        if (line + 1 > code.length || code.op(line + 1) != Op.MMBINK) throw new IllegalStateException();
-        var left = state.r.getExpression(code.B(line), line);
-        Expression right = f.getConstantExpression(code.C(line));
-        if (code.k(line + 1)) {
+        if (line + 1 > bytecodeReader.length || bytecodeReader.op(line + 1) != Op.MMBINK) throw new IllegalStateException();
+        var left = state.r.getExpression(bytecodeReader.B(line), line);
+        Expression right = query.getConstantExpression(bytecodeReader.C(line));
+        if (bytecodeReader.k(line + 1)) {
             var temp = left;
             left = right;
             right = temp;
         }
-        operations.add(new RegisterSet(line, code.A(line), Expression.make(op, left, right)));
+        operations.add(new RegisterSet(line, bytecodeReader.A(line), Expression.make(op, left, right)));
     }
 
     private void handleUnaryOp(List<Operation> operations, State state, int line, Expression.UnaryOperation op) {
-        operations.add(new RegisterSet(line, code.A(line), Expression.make(op, state.r.getExpression(code.B(line), line))));
+        operations.add(new RegisterSet(line, bytecodeReader.A(line), Expression.make(op, state.r.getExpression(bytecodeReader.B(line), line))));
     }
 
     private void handleSetList(List<Operation> operations, State state, int line, int stack, int count, int offset) {
         var table = state.r.getValue(stack, line);
         for (var i = 1; i <= count; i++) {
-            operations.add(new TableSet(line, table, ConstantExpression.createInteger(offset + i), state.r.getExpression(stack + i, line), false, state.r.getUpdated(stack + i, line)));
+            operations.add(new TableSet(line, table, ConstantExpression.createInteger(offset + i), state.r.getExpression(stack + i, line), state.r.getUpdated(stack + i, line)));
         }
     }
 
@@ -258,18 +257,18 @@ public class Decompiler {
         var r = state.r;
         var skip = state.skip;
         List<Operation> operations = new LinkedList<>();
-        var A = code.A(line);
-        var B = code.B(line);
-        var C = code.C(line);
-        var Bx = code.Bx(line);
-        switch (code.op(line)) {
+        var A = bytecodeReader.A(line);
+        var B = bytecodeReader.B(line);
+        var C = bytecodeReader.C(line);
+        var Bx = bytecodeReader.Bx(line);
+        switch (bytecodeReader.op(line)) {
             case MOVE -> operations.add(new RegisterSet(line, A, r.getExpression(B, line)));
-            case LOADI -> operations.add(new RegisterSet(line, A, ConstantExpression.createInteger(code.sBx(line))));
-            case LOADF -> operations.add(new RegisterSet(line, A, ConstantExpression.createDouble(code.sBx(line))));
-            case LOADK -> operations.add(new RegisterSet(line, A, f.getConstantExpression(Bx)));
+            case LOADI -> operations.add(new RegisterSet(line, A, ConstantExpression.createInteger(bytecodeReader.sBx(line))));
+            case LOADF -> operations.add(new RegisterSet(line, A, ConstantExpression.createDouble(bytecodeReader.sBx(line))));
+            case LOADK -> operations.add(new RegisterSet(line, A, query.getConstantExpression(Bx)));
             case LOADKX -> {
-                if (line + 1 > code.length || code.op(line + 1) != Op.EXTRAARG) throw new IllegalStateException();
-                operations.add(new RegisterSet(line, A, f.getConstantExpression(code.Ax(line + 1))));
+                if (line + 1 > bytecodeReader.length || bytecodeReader.op(line + 1) != Op.EXTRAARG) throw new IllegalStateException();
+                operations.add(new RegisterSet(line, A, query.getConstantExpression(bytecodeReader.Ax(line + 1))));
             }
             case LOADBOOL -> operations.add(new RegisterSet(line, A, ConstantExpression.createBoolean(B != 0)));
             case LOADFALSE, LFALSESKIP ->
@@ -277,14 +276,14 @@ public class Decompiler {
             case LOADTRUE -> operations.add(new RegisterSet(line, A, ConstantExpression.createBoolean(true)));
             case LOADNIL -> operations.add(new LoadNil(line, A, B));
             case LOADNIL52 -> operations.add(new LoadNil(line, A, A + B));
-            case GETGLOBAL -> operations.add(new RegisterSet(line, A, f.getGlobalExpression(Bx)));
-            case SETGLOBAL -> operations.add(new GlobalSet(line, f.getGlobalName(Bx), r.getExpression(A, line)));
+            case GETGLOBAL -> operations.add(new RegisterSet(line, A, query.getGlobalExpression(Bx)));
+            case SETGLOBAL -> operations.add(new GlobalSet(line, query.getGlobalName(Bx), r.getExpression(A, line)));
             case GETUPVAL -> operations.add(new RegisterSet(line, A, upvalues.getExpression(B)));
             case SETUPVAL -> operations.add(new UpvalueSet(line, upvalues.getName(B), r.getExpression(A, line)));
             case GETTABUP ->
                     operations.add(new RegisterSet(line, A, new TableReference(upvalues.getExpression(B), r.getKExpression(C, line))));
             case GETTABUP54 ->
-                    operations.add(new RegisterSet(line, A, new TableReference(upvalues.getExpression(B), f.getConstantExpression(C))));
+                    operations.add(new RegisterSet(line, A, new TableReference(upvalues.getExpression(B), query.getConstantExpression(C))));
             case GETTABLE ->
                     operations.add(new RegisterSet(line, A, new TableReference(r.getExpression(B, line), r.getKExpression(C, line))));
             case GETTABLE54 ->
@@ -292,27 +291,27 @@ public class Decompiler {
             case GETI ->
                     operations.add(new RegisterSet(line, A, new TableReference(r.getExpression(B, line), ConstantExpression.createInteger(C))));
             case GETFIELD ->
-                    operations.add(new RegisterSet(line, A, new TableReference(r.getExpression(B, line), f.getConstantExpression(C))));
+                    operations.add(new RegisterSet(line, A, new TableReference(r.getExpression(B, line), query.getConstantExpression(C))));
             case SETTABLE ->
-                    operations.add(new TableSet(line, r.getExpression(A, line), r.getKExpression(B, line), r.getKExpression(C, line), true, line));
+                    operations.add(new TableSet(line, r.getExpression(A, line), r.getKExpression(B, line), r.getKExpression(C, line), line));
             case SETTABLE54 ->
-                    operations.add(new TableSet(line, r.getExpression(A, line), r.getExpression(B, line), r.getKExpression54(C, code.k(line), line), true, line));
+                    operations.add(new TableSet(line, r.getExpression(A, line), r.getExpression(B, line), r.getKExpression54(C, bytecodeReader.k(line), line), line));
             case SETI ->
-                    operations.add(new TableSet(line, r.getExpression(A, line), ConstantExpression.createInteger(B), r.getKExpression54(C, code.k(line), line), true, line));
+                    operations.add(new TableSet(line, r.getExpression(A, line), ConstantExpression.createInteger(B), r.getKExpression54(C, bytecodeReader.k(line), line), line));
             case SETFIELD ->
-                    operations.add(new TableSet(line, r.getExpression(A, line), f.getConstantExpression(B), r.getKExpression54(C, code.k(line), line), true, line));
+                    operations.add(new TableSet(line, r.getExpression(A, line), query.getConstantExpression(B), r.getKExpression54(C, bytecodeReader.k(line), line), line));
             case SETTABUP ->
-                    operations.add(new TableSet(line, upvalues.getExpression(A), r.getKExpression(B, line), r.getKExpression(C, line), true, line));
+                    operations.add(new TableSet(line, upvalues.getExpression(A), r.getKExpression(B, line), r.getKExpression(C, line), line));
             case SETTABUP54 ->
-                    operations.add(new TableSet(line, upvalues.getExpression(A), f.getConstantExpression(B), r.getKExpression54(C, code.k(line), line), true, line));
+                    operations.add(new TableSet(line, upvalues.getExpression(A), query.getConstantExpression(B), r.getKExpression54(C, bytecodeReader.k(line), line), line));
             case NEWTABLE50 ->
                     operations.add(new RegisterSet(line, A, new TableLiteral(fb2int50(B), C == 0 ? 0 : 1 << C)));
             case NEWTABLE -> operations.add(new RegisterSet(line, A, new TableLiteral(fb2int(B), fb2int(C))));
             case NEWTABLE54 -> {
-                if (code.op(line + 1) != Op.EXTRAARG) throw new IllegalStateException();
+                if (bytecodeReader.op(line + 1) != Op.EXTRAARG) throw new IllegalStateException();
                 var arraySize = C;
-                if (code.k(line)) {
-                    arraySize += code.Ax(line + 1) * (code.getExtractor().C.max() + 1);
+                if (bytecodeReader.k(line)) {
+                    arraySize += bytecodeReader.Ax(line + 1) * (bytecodeReader.getDecoder().C.max() + 1);
                 }
                 operations.add(new RegisterSet(line, A, new TableLiteral(arraySize, B == 0 ? 0 : (1 << (B - 1)))));
             }
@@ -326,7 +325,7 @@ public class Decompiler {
                 // We can later determine if : syntax was used by comparing subexpressions with ==
                 var common = r.getExpression(B, line);
                 operations.add(new RegisterSet(line, A + 1, common));
-                operations.add(new RegisterSet(line, A, new TableReference(common, r.getKExpression54(C, code.k(line), line))));
+                operations.add(new RegisterSet(line, A, new TableReference(common, r.getKExpression54(C, bytecodeReader.k(line), line))));
             }
             case ADD -> handle50BinOp(operations, state, line, Expression.BinaryOperation.ADD);
             case SUB -> handle50BinOp(operations, state, line, Expression.BinaryOperation.SUB);
@@ -353,11 +352,11 @@ public class Decompiler {
             case SHL54 -> handle54BinOp(operations, state, line, Expression.BinaryOperation.SHL);
             case SHR54 -> handle54BinOp(operations, state, line, Expression.BinaryOperation.SHR);
             case ADDI -> {
-                if (line + 1 > code.length || code.op(line + 1) != Op.MMBINI) throw new IllegalStateException();
-                var op = decodeBinOp(code.C(line + 1));
-                var immediate = code.sC(line);
+                if (line + 1 > bytecodeReader.length || bytecodeReader.op(line + 1) != Op.MMBINI) throw new IllegalStateException();
+                var op = decodeBinOp(bytecodeReader.C(line + 1));
+                var immediate = bytecodeReader.sC(line);
                 var swap = false;
-                if (code.k(line + 1)) {
+                if (bytecodeReader.k(line + 1)) {
                     if (op != Expression.BinaryOperation.ADD) {
                         throw new IllegalStateException();
                     }
@@ -391,9 +390,9 @@ public class Decompiler {
             case BORK -> handle54BinKOp(operations, state, line, Expression.BinaryOperation.BOR);
             case BXORK -> handle54BinKOp(operations, state, line, Expression.BinaryOperation.BXOR);
             case SHRI -> {
-                if (line + 1 > code.length || code.op(line + 1) != Op.MMBINI) throw new IllegalStateException();
-                var immediate = code.sC(line);
-                var op = decodeBinOp(code.C(line + 1));
+                if (line + 1 > bytecodeReader.length || bytecodeReader.op(line + 1) != Op.MMBINI) throw new IllegalStateException();
+                var immediate = bytecodeReader.sC(line);
+                var op = decodeBinOp(bytecodeReader.C(line + 1));
                 if (op == Expression.BinaryOperation.SHR) {
                     // okay
                 } else if (op == Expression.BinaryOperation.SHL) {
@@ -403,7 +402,7 @@ public class Decompiler {
                 }
                 operations.add(new RegisterSet(line, A, Expression.make(op, r.getExpression(B, line), ConstantExpression.createInteger(immediate))));
             }
-            case SHLI -> operations.add(new RegisterSet(line, A, Expression.make(Expression.BinaryOperation.SHL, ConstantExpression.createInteger(code.sC(line)), r.getExpression(B, line))));
+            case SHLI -> operations.add(new RegisterSet(line, A, Expression.make(Expression.BinaryOperation.SHL, ConstantExpression.createInteger(bytecodeReader.sC(line)), r.getExpression(B, line))));
             case MMBIN, MMBINI, MMBINK -> {
             }
             /* Do nothing ... handled with preceding operation. */
@@ -493,7 +492,7 @@ public class Decompiler {
             }
             case SETLIST -> {
                 if (C == 0) {
-                    C = code.codepoint(line + 1);
+                    C = bytecodeReader.codepoint(line + 1);
                     skip[line + 1] = true;
                 }
                 if (B == 0) {
@@ -503,8 +502,8 @@ public class Decompiler {
             }
             case SETLIST52 -> {
                 if (C == 0) {
-                    if (line + 1 > code.length || code.op(line + 1) != Op.EXTRAARG) throw new IllegalStateException();
-                    C = code.Ax(line + 1);
+                    if (line + 1 > bytecodeReader.length || bytecodeReader.op(line + 1) != Op.EXTRAARG) throw new IllegalStateException();
+                    C = bytecodeReader.Ax(line + 1);
                     skip[line + 1] = true;
                 }
                 if (B == 0) {
@@ -513,9 +512,9 @@ public class Decompiler {
                 handleSetList(operations, state, line, A, B, (C - 1) * 50);
             }
             case SETLIST54 -> {
-                if (code.k(line)) {
-                    if (line + 1 > code.length || code.op(line + 1) != Op.EXTRAARG) throw new IllegalStateException();
-                    C += code.Ax(line + 1) * (code.getExtractor().C.max() + 1);
+                if (bytecodeReader.k(line)) {
+                    if (line + 1 > bytecodeReader.length || bytecodeReader.op(line + 1) != Op.EXTRAARG) throw new IllegalStateException();
+                    C += bytecodeReader.Ax(line + 1) * (bytecodeReader.getDecoder().C.max() + 1);
                     skip[line + 1] = true;
                 }
                 if (B == 0) {
@@ -533,12 +532,12 @@ public class Decompiler {
                     // Handle upvalue declarations
                     for (var i = 0; i < f.numUpvalues; i++) {
                         var upvalue = f.upvalues[i];
-                        switch (code.op(line + 1 + i)) {
+                        switch (bytecodeReader.op(line + 1 + i)) {
                             case MOVE -> upvalue.instack = true;
                             case GETUPVAL -> upvalue.instack = false;
                             default -> throw new IllegalStateException();
                         }
-                        upvalue.idx = code.B(line + 1 + i);
+                        upvalue.idx = bytecodeReader.B(line + 1 + i);
                         skip[line + 1 + i] = true;
                     }
                 }
@@ -570,7 +569,7 @@ public class Decompiler {
 
     private Expression initialExpression(State state, int register, int line) {
         if (line == 1) {
-            if (register < function.numParams) throw new IllegalStateException();
+            if (register < function.paramCount) throw new IllegalStateException();
             return ConstantExpression.createNil(line);
         } else {
             return state.r.getExpression(register, line - 1);
@@ -598,7 +597,7 @@ public class Decompiler {
                 }
                 //System.out.println("-- checking for multiassign @" + nextLine);
                 while (!declare && nextLine < block.end) {
-                    var op = code.op(nextLine);
+                    var op = bytecodeReader.op(nextLine);
                     if (isMoveIntoTarget(r, nextLine)) {
                         //System.out.println("-- found multiassign @" + nextLine);
                         var target = getMoveIntoTargetTarget(r, nextLine, line + 1);
@@ -606,7 +605,7 @@ public class Decompiler {
                         assign.addFirst(target, value, nextLine);
                         skip[nextLine] = true;
                         nextLine++;
-                    } else if (op == Op.MMBIN || op == Op.MMBINI || op == Op.MMBINK || code.isUpvalueDeclaration(nextLine)) {
+                    } else if (op == Op.MMBIN || op == Op.MMBINI || op == Op.MMBINK || bytecodeReader.isUpvalueDeclaration(nextLine)) {
                         // skip
                         nextLine++;
                     } else {
@@ -624,12 +623,12 @@ public class Decompiler {
     public boolean hasStatement(int begin, int end) {
         if (begin <= end) {
             var state = new State();
-            state.r = new Registers(registers, length, declList, f, getNoDebug());
-            state.outer = new OuterBlock(function, code.length);
+            state.r = new Registers(registers, length, declList, query, getNoDebug());
+            state.outer = new OuterBlock(function, bytecodeReader.length);
             Block scoped = new DoEndBlock(function, begin, end + 1);
-            state.labels = new boolean[code.length + 1];
+            state.labels = new boolean[bytecodeReader.length + 1];
             var blocks = Arrays.asList(state.outer, scoped);
-            processSequence(state, blocks, code.length);
+            processSequence(state, blocks, bytecodeReader.length);
             return !scoped.isEmpty();
         } else {
             return false;
@@ -652,9 +651,9 @@ public class Decompiler {
         var blockStack = new Stack<Block>();
         blockStack.push(blockContainers.get(blockContainerIndex++));
 
-        state.skip = new boolean[code.length + 1];
+        state.skip = new boolean[bytecodeReader.length + 1];
         var skip = state.skip;
-        var labels_handled = new boolean[code.length + 1];
+        var labels_handled = new boolean[bytecodeReader.length + 1];
 
         var line = 1;
         while (true) {
@@ -774,27 +773,27 @@ public class Decompiler {
     }
 
     private boolean isMoveIntoTarget(Registers r, int line) {
-        if (code.isUpvalueDeclaration(line)) return false;
-        switch (code.op(line)) {
+        if (bytecodeReader.isUpvalueDeclaration(line)) return false;
+        switch (bytecodeReader.op(line)) {
             case MOVE -> {
-                return r.isAssignable(code.A(line), line) && !r.isLocal(code.B(line), line);
+                return r.isAssignable(bytecodeReader.A(line), line) && !r.isLocal(bytecodeReader.B(line), line);
             }
             case SETUPVAL, SETGLOBAL -> {
-                return !r.isLocal(code.A(line), line);
+                return !r.isLocal(bytecodeReader.A(line), line);
             }
             case SETTABLE, SETTABUP -> {
-                var C = code.C(line);
-                if (f.isConstant(C)) {
+                var C = bytecodeReader.C(line);
+                if (query.isConstant(C)) {
                     return false;
                 } else {
                     return !r.isLocal(C, line);
                 }
             }
             case SETTABLE54, SETI, SETFIELD, SETTABUP54 -> {
-                if (code.k(line)) {
+                if (bytecodeReader.k(line)) {
                     return false;
                 } else {
-                    return !r.isLocal(code.C(line), line);
+                    return !r.isLocal(bytecodeReader.C(line), line);
                 }
             }
             default -> {
@@ -804,47 +803,47 @@ public class Decompiler {
     }
 
     private Target getMoveIntoTargetTarget(Registers r, int line, int previous) {
-        switch (code.op(line)) {
+        switch (bytecodeReader.op(line)) {
             case MOVE -> {
-                return r.getTarget(code.A(line), line);
+                return r.getTarget(bytecodeReader.A(line), line);
             }
             case SETUPVAL -> {
-                return new UpvalueTarget(upvalues.getName(code.B(line)));
+                return new UpvalueTarget(upvalues.getName(bytecodeReader.B(line)));
             }
             case SETGLOBAL -> {
-                return new GlobalTarget(f.getGlobalName(code.Bx(line)));
+                return new GlobalTarget(query.getGlobalName(bytecodeReader.Bx(line)));
             }
             case SETTABLE -> {
-                return new TableTarget(r.getExpression(code.A(line), previous), r.getKExpression(code.B(line), previous));
+                return new TableTarget(r.getExpression(bytecodeReader.A(line), previous), r.getKExpression(bytecodeReader.B(line), previous));
             }
             case SETTABLE54 -> {
-                return new TableTarget(r.getExpression(code.A(line), previous), r.getExpression(code.B(line), previous));
+                return new TableTarget(r.getExpression(bytecodeReader.A(line), previous), r.getExpression(bytecodeReader.B(line), previous));
             }
             case SETI -> {
-                return new TableTarget(r.getExpression(code.A(line), previous), ConstantExpression.createInteger(code.B(line)));
+                return new TableTarget(r.getExpression(bytecodeReader.A(line), previous), ConstantExpression.createInteger(bytecodeReader.B(line)));
             }
             case SETFIELD -> {
-                return new TableTarget(r.getExpression(code.A(line), previous), f.getConstantExpression(code.B(line)));
+                return new TableTarget(r.getExpression(bytecodeReader.A(line), previous), query.getConstantExpression(bytecodeReader.B(line)));
             }
             case SETTABUP -> {
-                var A = code.A(line);
-                var B = code.B(line);
+                var A = bytecodeReader.A(line);
+                var B = bytecodeReader.B(line);
                 return new TableTarget(upvalues.getExpression(A), r.getKExpression(B, previous));
             }
             case SETTABUP54 -> {
-                var A = code.A(line);
-                var B = code.B(line);
-                return new TableTarget(upvalues.getExpression(A), f.getConstantExpression(B));
+                var A = bytecodeReader.A(line);
+                var B = bytecodeReader.B(line);
+                return new TableTarget(upvalues.getExpression(A), query.getConstantExpression(B));
             }
             default -> throw new IllegalStateException();
         }
     }
 
     private Expression getMoveIntoTargetValue(Registers r, int line, int previous) {
-        var A = code.A(line);
-        var B = code.B(line);
-        var C = code.C(line);
-        switch (code.op(line)) {
+        var A = bytecodeReader.A(line);
+        var B = bytecodeReader.B(line);
+        var C = bytecodeReader.C(line);
+        switch (bytecodeReader.op(line)) {
             case MOVE -> {
                 return r.getValue(B, previous);
             }
@@ -852,14 +851,14 @@ public class Decompiler {
                 return r.getExpression(A, previous);
             }
             case SETTABLE, SETTABUP -> {
-                if (f.isConstant(C)) {
+                if (query.isConstant(C)) {
                     throw new IllegalStateException();
                 } else {
                     return r.getExpression(C, previous);
                 }
             }
             case SETTABLE54, SETI, SETFIELD, SETTABUP54 -> {
-                if (code.k(line)) {
+                if (bytecodeReader.k(line)) {
                     throw new IllegalStateException();
                 } else {
                     return r.getExpression(C, previous);

@@ -1,6 +1,6 @@
-package me.hydos.unluac.parse;
+package me.hydos.unluac.bytecode;
 
-import me.hydos.unluac.decompile.CodeExtract;
+import me.hydos.unluac.decompile.BytecodeDecoder;
 
 public class LHeader extends BObject {
 
@@ -18,8 +18,8 @@ public class LHeader extends BObject {
     public final LLocalType local;
     public final LUpvalueType upvalue;
     public final LFunctionType function;
-    public final CodeExtract extractor;
-    public LHeader(int format, LEndianness endianness, BIntegerType integer, BIntegerType sizeT, LBooleanType bool, LNumberType number, LNumberType linteger, LNumberType lfloat, LStringType string, LConstantType constant, LAbsLineInfoType abslineinfo, LLocalType local, LUpvalueType upvalue, LFunctionType function, CodeExtract extractor) {
+    public final BytecodeDecoder extractor;
+    public LHeader(int format, LEndianness endianness, BIntegerType integer, BIntegerType sizeT, LBooleanType bool, LNumberType number, LNumberType linteger, LNumberType lfloat, LStringType string, LConstantType constant, LAbsLineInfoType abslineinfo, LLocalType local, LUpvalueType upvalue, LFunctionType function, BytecodeDecoder extractor) {
         this.format = format;
         this.endianness = endianness;
         this.integer = integer;

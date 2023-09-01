@@ -1,4 +1,4 @@
-package me.hydos.unluac.parse;
+package me.hydos.unluac.bytecode;
 
 import java.io.IOException;
 import java.io.OutputStream;

@@ -4,7 +4,7 @@ import me.hydos.unluac.decompile.*;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.decompile.target.Target;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +28,7 @@ public class TForBlock extends ContainerBlock {
     private Target[] targets;
     private Expression[] values;
 
-    public TForBlock(LFunction function, int begin, int end,
+    public TForBlock(BFunction function, int begin, int end,
                      int internalRegisterFirst, int internalRegisterLast,
                      int explicitRegisterFirst, int explicitRegisterLast,
                      int internalScopeBegin, int internalScopeEnd,
@@ -47,7 +47,7 @@ public class TForBlock extends ContainerBlock {
         this.innerScopeEnd = innerScopeEnd;
     }
 
-    public static TForBlock make50(LFunction function, int begin, int end, int register, int length, boolean innerClose) {
+    public static TForBlock make50(BFunction function, int begin, int end, int register, int length, boolean innerClose) {
         var innerScopeEnd = end - 3;
         if (innerClose) {
             innerScopeEnd--;
@@ -61,7 +61,7 @@ public class TForBlock extends ContainerBlock {
         );
     }
 
-    public static TForBlock make51(LFunction function, int begin, int end, int register, int length, boolean forvarClose, boolean innerClose) {
+    public static TForBlock make51(BFunction function, int begin, int end, int register, int length, boolean forvarClose, boolean innerClose) {
         var explicitScopeEnd = end - 3;
         var innerScopeEnd = end - 3;
         if (forvarClose) {
@@ -80,7 +80,7 @@ public class TForBlock extends ContainerBlock {
         );
     }
 
-    public static TForBlock make54(LFunction function, int begin, int end, int register, int length, boolean forvarClose) {
+    public static TForBlock make54(BFunction function, int begin, int end, int register, int length, boolean forvarClose) {
         var innerScopeEnd = end - 3;
         if (forvarClose) {
             innerScopeEnd--;

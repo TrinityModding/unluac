@@ -1,8 +1,5 @@
 package me.hydos.unluac.decompile;
 
-import me.hydos.unluac.parse.LFunction;
-import me.hydos.unluac.parse.LUpvalue;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +15,7 @@ public class VariableFinder {
     }
 
     public static Declaration[] process(Decompiler d, int args, int registers) {
-        var code = d.code;
+        var code = d.bytecodeReader;
         var states = new RegisterStates(registers, code.length());
         var skip = new boolean[code.length()];
         for (var line = 1; line <= code.length(); line++) {

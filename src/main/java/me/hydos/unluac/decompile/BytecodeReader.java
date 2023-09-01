@@ -1,27 +1,27 @@
 package me.hydos.unluac.decompile;
 
 import me.hydos.unluac.Version;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
-public class Code {
+public class BytecodeReader {
 
     public final int length;
-    private final CodeExtract extractor;
+    private final BytecodeDecoder decoder;
     private final OpcodeMap map;
     private final int[] code;
     private final boolean[] extraByte;
     private final boolean[] upvalue;
 
-    public Code(LFunction function) {
+    public BytecodeReader(BFunction function) {
         this.code = function.code;
         this.length = code.length;
         map = function.header.opmap;
-        extractor = function.header.extractor;
+        decoder = function.header.extractor;
         extraByte = new boolean[length];
         for (var i = 0; i < length; i++) {
             var line = i + 1;
             var op = op(line);
-            extraByte[i] = op != null && op.hasExtraByte(codepoint(line), extractor);
+            extraByte[i] = op != null && op.hasExtraByte(codepoint(line), decoder);
         }
         upvalue = new boolean[length];
         if (function.header.version.upvaluedeclarationtype.get() == Version.UpvalueDeclarationType.INLINE) {
@@ -42,8 +42,8 @@ public class Code {
         }
     }
 
-    public CodeExtract getExtractor() {
-        return extractor;
+    public BytecodeDecoder getDecoder() {
+        return decoder;
     }
 
     //public boolean reentered = false;
@@ -65,21 +65,21 @@ public class Code {
     }
 
     public int opcode(int line) {
-        return extractor.op.extract(code[line - 1]);
+        return decoder.op.extract(code[line - 1]);
     }
 
     /**
      * Returns the A field of the instruction at the given line.
      */
     public int A(int line) {
-        return extractor.A.extract(code[line - 1]);
+        return decoder.A.extract(code[line - 1]);
     }
 
     /**
      * Returns the C field of the instruction at the given line.
      */
     public int C(int line) {
-        return extractor.C.extract(code[line - 1]);
+        return decoder.C.extract(code[line - 1]);
     }
 
     /**
@@ -87,7 +87,7 @@ public class Code {
      */
     public int sC(int line) {
         var C = C(line);
-        return C - extractor.C.max() / 2;
+        return C - decoder.C.max() / 2;
     }
 
 
@@ -95,14 +95,14 @@ public class Code {
      * Returns the k field of the instruction at the given line (1 is true, 0 is false).
      */
     public boolean k(int line) {
-        return extractor.k.extract(code[line - 1]) != 0;
+        return decoder.k.extract(code[line - 1]) != 0;
     }
 
     /**
      * Returns the B field of the instruction at the given line.
      */
     public int B(int line) {
-        return extractor.B.extract(code[line - 1]);
+        return decoder.B.extract(code[line - 1]);
     }
 
     /**
@@ -110,28 +110,28 @@ public class Code {
      */
     public int sB(int line) {
         var B = B(line);
-        return B - extractor.B.max() / 2;
+        return B - decoder.B.max() / 2;
     }
 
     /**
      * Returns the Ax field (A extended) of the instruction at the given line.
      */
     public int Ax(int line) {
-        return extractor.Ax.extract(code[line - 1]);
+        return decoder.Ax.extract(code[line - 1]);
     }
 
     /**
      * Returns the Bx field (B extended) of the instruction at the given line.
      */
     public int Bx(int line) {
-        return extractor.Bx.extract(code[line - 1]);
+        return decoder.Bx.extract(code[line - 1]);
     }
 
     /**
      * Returns the sBx field (signed B extended) of the instruction at the given line.
      */
     public int sBx(int line) {
-        return extractor.sBx.extract(code[line - 1]);
+        return decoder.sBx.extract(code[line - 1]);
     }
 
     /**
@@ -139,7 +139,7 @@ public class Code {
      * This field will be chosen automatically based on the opcode.
      */
     public int target(int line) {
-        return line + 1 + op(line).jumpField(codepoint(line), extractor);
+        return line + 1 + op(line).jumpField(codepoint(line), decoder);
     }
 
     /**
@@ -158,7 +158,7 @@ public class Code {
     }
 
     public String toString(int line) {
-        return op(line).codePointToString(0, null, codepoint(line), extractor, null, false);
+        return op(line).codePointToString(0, null, codepoint(line), decoder, null, false);
     }
 
 }

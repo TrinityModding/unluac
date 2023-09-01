@@ -3,20 +3,21 @@ package me.hydos.unluac.decompile;
 import me.hydos.unluac.Version;
 import me.hydos.unluac.decompile.expression.ConstantExpression;
 import me.hydos.unluac.decompile.expression.GlobalExpression;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
-public class Function {
+/**
+ * Allows querying info about the bytecode
+ */
+public class FunctionQuery {
 
     private final Version version;
     private final Constant[] constants;
-    private final CodeExtract extract;
+    private final BytecodeDecoder extract;
 
-    public Function(LFunction function) {
+    public FunctionQuery(BFunction function) {
         version = function.header.version;
         constants = new Constant[function.constants.length];
-        for (var i = 0; i < constants.length; i++) {
-            constants[i] = new Constant(function.constants[i]);
-        }
+        for (var i = 0; i < constants.length; i++) constants[i] = new Constant(function.constants[i]);
         extract = function.header.extractor;
     }
 

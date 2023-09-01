@@ -1,14 +1,22 @@
 package me.hydos.unluac.decompile;
 
 import me.hydos.unluac.decompile.expression.UpvalueExpression;
-import me.hydos.unluac.parse.LFunction;
-import me.hydos.unluac.parse.LUpvalue;
+import me.hydos.unluac.bytecode.BFunction;
+import me.hydos.unluac.bytecode.LUpvalue;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class Upvalues {
 
     private final LUpvalue[] upvalues;
 
-    public Upvalues(LFunction func, Declaration[] parentDecls, int line) {
+    @Deprecated
+    public Upvalues(BFunction func, Declaration[] parentDecls, int line) {
+        this(func, parentDecls == null ? null : Arrays.stream(parentDecls).toList(), line);
+    }
+
+    public Upvalues(BFunction func, List<Declaration> parentDecls, int line) {
         this.upvalues = func.upvalues;
         for (var upvalue : upvalues) {
             if (upvalue.name == null || upvalue.name.isEmpty()) {

@@ -3,7 +3,7 @@ package me.hydos.unluac.decompile.block;
 import me.hydos.unluac.decompile.CloseType;
 import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +15,7 @@ abstract public class ContainerBlock extends Block {
     protected final int closeLine;
     protected boolean usingClose;
 
-    public ContainerBlock(LFunction function, int begin, int end, CloseType closeType, int closeLine, int priority) {
+    public ContainerBlock(BFunction function, int begin, int end, CloseType closeType, int closeLine, int priority) {
         super(function, begin, end, priority);
         this.closeType = closeType;
         this.closeLine = closeLine;

@@ -1,4 +1,4 @@
-package me.hydos.unluac.parse;
+package me.hydos.unluac.bytecode;
 
 import me.hydos.unluac.Version;
 
@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 abstract public class BObjectType<T extends BObject> {

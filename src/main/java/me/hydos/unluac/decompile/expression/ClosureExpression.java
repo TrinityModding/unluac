@@ -6,15 +6,14 @@ import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.target.TableTarget;
 import me.hydos.unluac.decompile.target.Target;
 import me.hydos.unluac.decompile.target.VariableTarget;
-import me.hydos.unluac.parse.LFunction;
-import me.hydos.unluac.parse.LUpvalue;
+import me.hydos.unluac.bytecode.BFunction;
 
 public class ClosureExpression extends Expression {
 
-    private final LFunction function;
+    private final BFunction function;
     private final int upvalueLine;
 
-    public ClosureExpression(LFunction function, int upvalueLine) {
+    public ClosureExpression(BFunction function, int upvalueLine) {
         super(PRECEDENCE_ATOMIC);
         this.function = function;
         this.upvalueLine = upvalueLine;
@@ -71,7 +70,7 @@ public class ClosureExpression extends Expression {
     public void printClosure(Decompiler outer, Output out, Target name) {
         var d = new Decompiler(function, outer.declList, upvalueLine);
         out.print("function ");
-        if (function.numParams >= 1 && d.declList[0].name.equals("self") && name instanceof TableTarget) {
+        if (function.paramCount >= 1 && d.declList[0].name.equals("self") && name instanceof TableTarget) {
             name.printMethod(outer, out);
             printMain(out, d, false);
         } else {
@@ -83,15 +82,15 @@ public class ClosureExpression extends Expression {
     private void printMain(Output out, Decompiler d, boolean includeFirst) {
         out.print("(");
         var start = includeFirst ? 0 : 1;
-        if (function.numParams > start) {
+        if (function.paramCount > start) {
             new VariableTarget(d.declList[start]).print(d, out, false);
-            for (var i = start + 1; i < function.numParams; i++) {
+            for (var i = start + 1; i < function.paramCount; i++) {
                 out.print(", ");
                 new VariableTarget(d.declList[i]).print(d, out, false);
             }
         }
         if (function.vararg != 0) {
-            if (function.numParams > start) {
+            if (function.paramCount > start) {
                 out.print(", ...");
             } else {
                 out.print("...");

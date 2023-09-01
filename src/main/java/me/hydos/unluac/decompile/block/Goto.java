@@ -4,13 +4,13 @@ import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 public class Goto extends Block {
 
     public final int target;
 
-    public Goto(LFunction function, int line, int target) {
+    public Goto(BFunction function, int line, int target) {
         super(function, line, line, 2);
         this.target = target;
     }

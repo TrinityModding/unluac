@@ -15,45 +15,43 @@ public class Registers {
 
     public final int registers;
     public final int length;
-    public final boolean isNoDebug;
     private final Declaration[][] decls;
-    private final Function f;
+    private final FunctionQuery f;
     private final Expression[][] values;
     private final int[][] updated;
-    private final boolean[] startedLines;
 
-    public Registers(int registers, int length, Declaration[] declList, Function f, boolean isNoDebug) {
+    @Deprecated
+    public Registers(int registers, int length, Declaration[] declList, FunctionQuery f, boolean isNoDebug) {
+        this(registers, length, Arrays.stream(declList).toList(), f);
+    }
+
+    public Registers(int registers, int length, List<Declaration> declList, FunctionQuery f) {
         this.registers = registers;
         this.length = length;
         decls = new Declaration[registers][length + 1];
+
         for (var decl : declList) {
             var register = 0;
-            while (decls[register][decl.begin] != null) {
-                register++;
-            }
+            while (decls[register][decl.begin] != null) register++;
             decl.register = register;
-            for (var line = decl.begin; line <= decl.end; line++) {
-                decls[register][line] = decl;
-            }
+            for (var line = decl.begin; line <= decl.end; line++) decls[register][line] = decl;
         }
+
         values = new Expression[registers][length + 1];
         Expression nil = ConstantExpression.createNil(0);
         for (var register = 0; register < registers; register++) {
             values[register][0] = nil;
         }
         updated = new int[registers][length + 1];
-        startedLines = new boolean[length + 1];
-        Arrays.fill(startedLines, false);
         this.f = f;
-        this.isNoDebug = isNoDebug;
     }
 
-    public Function getFunction() {
+    public FunctionQuery getFunction() {
         return f;
     }
 
     public boolean isAssignable(int register, int line) {
-        return isLocal(register, line) && (!decls[register][line].forLoop || isNoDebug);
+        return isLocal(register, line);
     }
 
     public boolean isLocal(int register, int line) {
@@ -73,6 +71,7 @@ public class Registers {
     public List<Declaration> getNewLocals(int line, int first) {
         first = Math.max(0, first);
         var locals = new ArrayList<Declaration>(Math.max(registers - first, 0));
+
         for (var register = first; register < registers; register++) {
             if (isNewLocal(register, line)) {
                 locals.add(getDeclaration(register, line));
@@ -86,8 +85,6 @@ public class Registers {
     }
 
     public void startLine(int line) {
-        //if(startedLines[line]) return;
-        startedLines[line] = true;
         for (var register = 0; register < registers; register++) {
             values[register][line] = values[register][line - 1];
             updated[register][line] = updated[register][line - 1];
@@ -99,35 +96,22 @@ public class Registers {
     }
 
     public Expression getExpression(int register, int line) {
-        if (isLocal(register, line - 1)) {
-            return new LocalVariable(getDeclaration(register, line - 1));
-        } else {
-            return values[register][line - 1];
-        }
+        if (isLocal(register, line - 1)) return new LocalVariable(getDeclaration(register, line - 1));
+        else return values[register][line - 1];
     }
 
     public Expression getKExpression(int register, int line) {
-        if (f.isConstant(register)) {
-            return f.getConstantExpression(f.constantIndex(register));
-        } else {
-            return getExpression(register, line);
-        }
+        if (f.isConstant(register)) return f.getConstantExpression(f.constantIndex(register));
+        else return getExpression(register, line);
     }
 
     public Expression getKExpression54(int register, boolean k, int line) {
-        if (k) {
-            return f.getConstantExpression(register);
-        } else {
-            return getExpression(register, line);
-        }
+        if (k) return f.getConstantExpression(register);
+        else return getExpression(register, line);
     }
 
     public Expression getValue(int register, int line) {
-        if (isNoDebug) {
-            return getExpression(register, line);
-        } else {
-            return values[register][line - 1];
-        }
+        return getExpression(register, line);
     }
 
     public int getUpdated(int register, int line) {
@@ -152,18 +136,8 @@ public class Registers {
             decl = new Declaration("_FOR_", begin, end);
             decl.register = register;
             newDeclaration(decl, register, begin, end);
-            if (!isNoDebug) {
-                throw new IllegalStateException("TEMP");
-            }
-        } else if (isNoDebug) {
-            //
-        } else {
-            if (decl.begin != begin || decl.end != end) {
-                System.err.println("given: " + begin + " " + end);
-                System.err.println("expected: " + decl.begin + " " + decl.end);
-                throw new IllegalStateException();
-            }
         }
+
         decl.forLoop = true;
     }
 
@@ -173,18 +147,8 @@ public class Registers {
             decl = new Declaration("_FORV_" + register + "_", begin, end);
             decl.register = register;
             newDeclaration(decl, register, begin, end);
-            if (!isNoDebug) {
-                throw new IllegalStateException("TEMP");
-            }
-        } else if (isNoDebug) {
-
-        } else {
-            if (decl.begin != begin || decl.end != end) {
-                System.err.println("given: " + begin + " " + end);
-                System.err.println("expected: " + decl.begin + " " + decl.end);
-                throw new IllegalStateException();
-            }
         }
+
         decl.forLoopExplicit = true;
     }
 

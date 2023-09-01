@@ -9,7 +9,7 @@ import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.operation.Operation;
 import me.hydos.unluac.decompile.statement.Assignment;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,11 +22,11 @@ public class IfThenEndBlock extends ContainerBlock {
 
     private Expression condexpr;
 
-    public IfThenEndBlock(LFunction function, Registers r, Condition cond, int begin, int end) {
+    public IfThenEndBlock(BFunction function, Registers r, Condition cond, int begin, int end) {
         this(function, r, cond, begin, end, CloseType.NONE, -1, false);
     }
 
-    public IfThenEndBlock(LFunction function, Registers r, Condition cond, int begin, int end, CloseType closeType, int closeLine, boolean redirected) {
+    public IfThenEndBlock(BFunction function, Registers r, Condition cond, int begin, int end, CloseType closeType, int closeLine, boolean redirected) {
         super(function, begin == end ? begin - 1 : begin, end, closeType, closeLine, -1);
         this.r = r;
         this.cond = cond;

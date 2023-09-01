@@ -3,8 +3,7 @@ package me.hydos.unluac.decompile.block;
 import me.hydos.unluac.decompile.*;
 import me.hydos.unluac.decompile.condition.Condition;
 import me.hydos.unluac.decompile.expression.Expression;
-import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 abstract public class WhileBlock extends ContainerBlock {
 
@@ -12,7 +11,7 @@ abstract public class WhileBlock extends ContainerBlock {
 
     private Expression condexpr;
 
-    public WhileBlock(LFunction function, Condition cond, int begin, int end, CloseType closeType, int closeLine) {
+    public WhileBlock(BFunction function, Condition cond, int begin, int end, CloseType closeType, int closeLine) {
         super(function, begin, end, closeType, closeLine, -1);
         this.cond = cond;
     }

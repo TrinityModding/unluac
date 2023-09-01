@@ -1,4 +1,4 @@
-package me.hydos.unluac.parse;
+package me.hydos.unluac.bytecode;
 
 import me.hydos.unluac.Version;
 import me.hydos.unluac.assemble.Directive;
@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 
-abstract public class LFunctionType extends BObjectType<LFunction> {
+abstract public class LFunctionType extends BObjectType<BFunction> {
 
     public static LFunctionType get(Version.FunctionType type) {
         return switch (type) {
@@ -24,7 +24,7 @@ abstract public class LFunctionType extends BObjectType<LFunction> {
     }
 
     @Override
-    public LFunction parse(ByteBuffer buffer, BHeader header) {
+    public BFunction parse(ByteBuffer buffer, BHeader header) {
         if (header.debug) {
             System.out.println("-- beginning to parse function");
         }
@@ -41,7 +41,7 @@ abstract public class LFunctionType extends BObjectType<LFunction> {
         if (s.abslineinfo != null) {
             abslineinfo = s.abslineinfo.asArray(new LAbsLineInfo[s.abslineinfo.length.asInt()]);
         }
-        var lfunc = new LFunction(header, s.name, s.lineBegin, s.lineEnd, s.code, lines, abslineinfo, s.locals.asArray(new LLocal[Math.max(0, s.locals.length.asInt())]), s.constants.asArray(new LObject[Math.max(0, s.constants.length.asInt())]), s.upvalues, s.functions.asArray(new LFunction[Math.max(0, s.functions.length.asInt())]), s.maximumStackSize, s.lenUpvalues, s.lenParameter, s.vararg);
+        var lfunc = new BFunction(header, s.name, s.lineBegin, s.lineEnd, s.code, lines, abslineinfo, s.locals.asArray(new LLocal[Math.max(0, s.locals.length.asInt())]), s.constants.asArray(new LObject[Math.max(0, s.constants.length.asInt())]), s.upvalues, s.functions.asArray(new BFunction[Math.max(0, s.functions.length.asInt())]), s.maximumStackSize, s.lenUpvalues, s.lenParameter, s.vararg);
         for (var child : lfunc.functions) {
             child.parent = lfunc;
         }
@@ -69,7 +69,7 @@ abstract public class LFunctionType extends BObjectType<LFunction> {
         }
     }
 
-    protected void write_code(OutputStream out, BHeader header, LFunction object) throws IOException {
+    protected void write_code(OutputStream out, BHeader header, BFunction object) throws IOException {
         header.integer.write(out, header, new BInteger(object.code.length));
         for (var i = 0; i < object.code.length; i++) {
             var codepoint = object.code[i];
@@ -98,7 +98,7 @@ abstract public class LFunctionType extends BObjectType<LFunction> {
         s.functions = header.function.parseList(buffer, header);
     }
 
-    protected void write_constants(OutputStream out, BHeader header, LFunction object) throws IOException {
+    protected void write_constants(OutputStream out, BHeader header, BFunction object) throws IOException {
         header.constant.writeList(out, header, object.constants);
         header.function.writeList(out, header, object.functions);
     }
@@ -116,7 +116,7 @@ abstract public class LFunctionType extends BObjectType<LFunction> {
         s.upvalues = upvalues.asArray(new LUpvalue[s.lenUpvalues]);
     }
 
-    protected void write_upvalues(OutputStream out, BHeader header, LFunction object) throws IOException {
+    protected void write_upvalues(OutputStream out, BHeader header, BFunction object) throws IOException {
         header.upvalue.writeList(out, header, object.upvalues);
     }
 
@@ -143,7 +143,7 @@ abstract public class LFunctionType extends BObjectType<LFunction> {
         }
     }
 
-    protected void write_debug(OutputStream out, BHeader header, LFunction object) throws IOException {
+    protected void write_debug(OutputStream out, BHeader header, BFunction object) throws IOException {
         header.integer.write(out, header, new BInteger(object.lines.length));
         for (var i = 0; i < object.lines.length; i++) {
             header.integer.write(out, header, new BInteger(object.lines[i]));
@@ -175,7 +175,7 @@ abstract public class LFunctionType extends BObjectType<LFunction> {
         int length;
         int[] code;
         BList<LObject> constants;
-        BList<LFunction> functions;
+        BList<BFunction> functions;
         BList<BInteger> lines;
         BList<LAbsLineInfo> abslineinfo;
         BList<LLocal> locals;
@@ -211,11 +211,11 @@ class LFunctionType50 extends LFunctionType {
     }
 
     @Override
-    public void write(OutputStream out, BHeader header, LFunction object) throws IOException {
+    public void write(OutputStream out, BHeader header, BFunction object) throws IOException {
         header.string.write(out, header, object.name);
         header.integer.write(out, header, new BInteger(object.linedefined));
         out.write(object.numUpvalues);
-        out.write(object.numParams);
+        out.write(object.paramCount);
         out.write(object.vararg);
         out.write(object.maximumStackSize);
         write_debug(out, header, object);
@@ -252,12 +252,12 @@ class LFunctionType51 extends LFunctionType {
     }
 
     @Override
-    public void write(OutputStream out, BHeader header, LFunction object) throws IOException {
+    public void write(OutputStream out, BHeader header, BFunction object) throws IOException {
         header.string.write(out, header, object.name);
         header.integer.write(out, header, new BInteger(object.linedefined));
         header.integer.write(out, header, new BInteger(object.lastlinedefined));
         out.write(object.numUpvalues);
-        out.write(object.numParams);
+        out.write(object.paramCount);
         out.write(object.vararg);
         out.write(object.maximumStackSize);
         write_code(out, header, object);
@@ -293,10 +293,10 @@ class LFunctionType52 extends LFunctionType {
     }
 
     @Override
-    public void write(OutputStream out, BHeader header, LFunction object) throws IOException {
+    public void write(OutputStream out, BHeader header, BFunction object) throws IOException {
         header.integer.write(out, header, new BInteger(object.linedefined));
         header.integer.write(out, header, new BInteger(object.lastlinedefined));
-        out.write(object.numParams);
+        out.write(object.paramCount);
         out.write(object.vararg);
         out.write(object.maximumStackSize);
         write_code(out, header, object);
@@ -335,11 +335,11 @@ class LFunctionType53 extends LFunctionType {
     }
 
     @Override
-    public void write(OutputStream out, BHeader header, LFunction object) throws IOException {
+    public void write(OutputStream out, BHeader header, BFunction object) throws IOException {
         header.string.write(out, header, object.name);
         header.integer.write(out, header, new BInteger(object.linedefined));
         header.integer.write(out, header, new BInteger(object.lastlinedefined));
-        out.write(object.numParams);
+        out.write(object.paramCount);
         out.write(object.vararg);
         out.write(object.maximumStackSize);
         write_code(out, header, object);
@@ -387,7 +387,7 @@ class LFunctionType54 extends LFunctionType {
     }
 
     @Override
-    protected void write_debug(OutputStream out, BHeader header, LFunction object) throws IOException {
+    protected void write_debug(OutputStream out, BHeader header, BFunction object) throws IOException {
         header.integer.write(out, header, new BInteger(object.lines.length));
         for (var i = 0; i < object.lines.length; i++) {
             out.write(object.lines[i]);
@@ -409,11 +409,11 @@ class LFunctionType54 extends LFunctionType {
     }
 
     @Override
-    public void write(OutputStream out, BHeader header, LFunction object) throws IOException {
+    public void write(OutputStream out, BHeader header, BFunction object) throws IOException {
         header.string.write(out, header, object.name);
         header.integer.write(out, header, new BInteger(object.linedefined));
         header.integer.write(out, header, new BInteger(object.lastlinedefined));
-        out.write(object.numParams);
+        out.write(object.paramCount);
         out.write(object.vararg);
         out.write(object.maximumStackSize);
         write_code(out, header, object);

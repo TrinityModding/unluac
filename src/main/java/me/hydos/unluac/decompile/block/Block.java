@@ -2,16 +2,18 @@ package me.hydos.unluac.decompile.block;
 
 import me.hydos.unluac.decompile.CloseType;
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.NewDecompiler;
 import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.operation.Operation;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 import java.util.List;
+import java.util.Objects;
 
 abstract public class Block extends Statement implements Comparable<Block> {
 
-    protected final LFunction function;
+    protected final BFunction function;
     private final int priority;
     public final int begin;
     public int end;
@@ -19,7 +21,7 @@ abstract public class Block extends Statement implements Comparable<Block> {
     public boolean loopRedirectAdjustment = false;
     protected boolean scopeUsed = false;
 
-    public Block(LFunction function, int begin, int end, int priority) {
+    public Block(BFunction function, int begin, int end, int priority) {
         this.function = function;
         this.begin = begin;
         this.end = end;
@@ -122,6 +124,7 @@ abstract public class Block extends Statement implements Comparable<Block> {
         }
     }
 
+    @Deprecated
     public Operation process(Decompiler d) {
         final Statement statement = this;
         return new Operation(end - 1) {
@@ -134,4 +137,26 @@ abstract public class Block extends Statement implements Comparable<Block> {
         };
     }
 
+    public Operation process() {
+        final Statement statement = this;
+        return new Operation(end - 1) {
+            @Override
+            public List<Statement> process(Registers r, Block block) {
+                return List.of(statement);
+            }
+        };
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        var block = (Block) o;
+        return priority == block.priority && begin == block.begin && end == block.end && closeRegister == block.closeRegister && loopRedirectAdjustment == block.loopRedirectAdjustment && scopeUsed == block.scopeUsed && Objects.equals(function, block.function);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(function, priority, begin, end, closeRegister, loopRedirectAdjustment, scopeUsed);
+    }
 }

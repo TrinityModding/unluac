@@ -6,7 +6,7 @@ import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.operation.Operation;
 import me.hydos.unluac.decompile.statement.Assignment;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 import java.util.Collections;
 import java.util.List;
@@ -19,7 +19,7 @@ public class SetBlock extends Block {
     private final boolean finalize = false;
     private Assignment assign;
 
-    public SetBlock(LFunction function, Condition cond, int target, int begin, int end, Registers r) {
+    public SetBlock(BFunction function, Condition cond, int target, int begin, int end, Registers r) {
         super(function, begin, end, 2);
         if (begin == end) throw new IllegalStateException();
         this.target = target;

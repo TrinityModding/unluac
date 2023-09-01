@@ -5,11 +5,11 @@ import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.statement.Return;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.parse.LFunction;
+import me.hydos.unluac.bytecode.BFunction;
 
 public class OuterBlock extends ContainerBlock {
 
-    public OuterBlock(LFunction function, int length) {
+    public OuterBlock(BFunction function, int length) {
         super(function, 0, length + 1, CloseType.NONE, -1, -2);
     }
 

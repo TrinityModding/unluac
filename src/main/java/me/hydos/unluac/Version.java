@@ -2,7 +2,7 @@ package me.hydos.unluac;
 
 import me.hydos.unluac.decompile.Op;
 import me.hydos.unluac.decompile.OpcodeMap;
-import me.hydos.unluac.parse.*;
+import me.hydos.unluac.bytecode.*;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -42,6 +42,7 @@ public class Version {
     private final LFunctionType lfunctiontype;
     private final OpcodeMap opcodemap;
     private final Op defaultop;
+
     private Version(Configuration config, int major, int minor) {
         HeaderType headertype;
         StringType stringtype;

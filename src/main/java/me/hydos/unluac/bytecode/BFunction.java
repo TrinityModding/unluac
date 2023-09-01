@@ -1,27 +1,31 @@
-package me.hydos.unluac.parse;
+package me.hydos.unluac.bytecode;
 
-public class LFunction extends BObject {
+public class BFunction extends BObject {
 
     public final BHeader header;
     public final LString name;
     public final int linedefined;
     public final int lastlinedefined;
-    public LFunction parent;
+    public BFunction parent;
     public final int[] code;
     public final int[] lines;
     public final LAbsLineInfo[] abslineinfo;
     public final LLocal[] locals;
     public final LObject[] constants;
     public final LUpvalue[] upvalues;
-    public final LFunction[] functions;
+    public final BFunction[] functions;
     public final int maximumStackSize;
     public final int numUpvalues;
-    public final int numParams;
+    public final int paramCount;
     public final int vararg;
     public boolean stripped;
-    public int level;
 
-    public LFunction(BHeader header, LString name, int linedefined, int lastlinedefined, int[] code, int[] lines, LAbsLineInfo[] abslineinfo, LLocal[] locals, LObject[] constants, LUpvalue[] upvalues, LFunction[] functions, int maximumStackSize, int numUpValues, int numParams, int vararg) {
+    /**
+     * How far we have gone into the code. The more methods we are in, The higher this number gets
+     */
+    public int depth;
+
+    public BFunction(BHeader header, LString name, int linedefined, int lastlinedefined, int[] code, int[] lines, LAbsLineInfo[] abslineinfo, LLocal[] locals, LObject[] constants, LUpvalue[] upvalues, BFunction[] functions, int maximumStackSize, int numUpValues, int paramCount, int vararg) {
         this.header = header;
         this.name = name;
         this.linedefined = linedefined;
@@ -35,15 +39,15 @@ public class LFunction extends BObject {
         this.functions = functions;
         this.maximumStackSize = maximumStackSize;
         this.numUpvalues = numUpValues;
-        this.numParams = numParams;
+        this.paramCount = paramCount;
         this.vararg = vararg;
         this.stripped = false;
     }
 
-    public void setLevel(int level) {
-        this.level = level;
+    public void setDepth(int depth) {
+        this.depth = depth;
         for (var f : functions) {
-            f.setLevel(level + 1);
+            f.setDepth(depth + 1);
         }
     }
 
