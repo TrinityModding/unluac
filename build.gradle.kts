@@ -28,5 +28,5 @@ tasks.withType<Jar> {
 
 tasks.test {
     useJUnitPlatform()
-    maxHeapSize = "4G"
+    maxHeapSize = "2G"
 }
