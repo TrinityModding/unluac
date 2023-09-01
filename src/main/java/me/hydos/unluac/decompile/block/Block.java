@@ -1,11 +1,11 @@
 package me.hydos.unluac.decompile.block;
 
+import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.decompile.CloseType;
 import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.operation.Operation;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.bytecode.BFunction;
 
 import java.util.List;
 import java.util.Objects;
@@ -28,7 +28,11 @@ abstract public class Block extends Statement implements Comparable<Block> {
         this.priority = priority;
     }
 
-    abstract public void addStatement(Statement statement);
+    public abstract void addStatement(Statement statement);
+
+    public List<Statement> getStatements() {
+        throw new RuntimeException("getStatements Not Implemented in " + getClass().getName());
+    }
 
     public void resolve(Registers r) {
     }

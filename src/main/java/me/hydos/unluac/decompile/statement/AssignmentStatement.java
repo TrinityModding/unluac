@@ -5,31 +5,32 @@ import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.expression.Expression;
+import me.hydos.unluac.decompile.expression.TableLiteral;
 import me.hydos.unluac.decompile.target.Target;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class Assignment extends Statement {
+public class AssignmentStatement extends Statement {
 
-    private final ArrayList<Target> targets = new ArrayList<>(5);
-    private final ArrayList<Expression> values = new ArrayList<>(5);
-    private final ArrayList<Integer> lines = new ArrayList<>(5);
+    public final ArrayList<Target> targets = new ArrayList<>(5);
+    public final ArrayList<Expression> values = new ArrayList<>(5);
+    public final ArrayList<Integer> lines = new ArrayList<>(5);
 
     private boolean allnil = true;
-    private boolean declare = false;
+    public boolean declare = false;
     private int declareStart = 0;
 
-    public Assignment() {
+    public AssignmentStatement() {
 
     }
 
-    public Assignment(Target target, Expression value, int line) {
+    public AssignmentStatement(Target target, Expression value, int line) {
         targets.add(target);
         values.add(value);
         lines.add(line);
-        allnil = allnil && value.isNil();
+        allnil = value.isNil();
     }
 
     public Target getFirstTarget() {
@@ -59,10 +60,6 @@ public class Assignment extends Statement {
             }
         }
         return false;
-    }
-
-    public int getArity() {
-        return targets.size();
     }
 
     public void addFirst(Target target, Expression value, int line) {
@@ -159,21 +156,17 @@ public class Assignment extends Statement {
     @Override
     public void print(Decompiler d, Output out) {
         if (!targets.isEmpty()) {
-            if (declare) {
-                out.print("local ");
-            }
+            // You are defining a new class instance. Organise your code
+            if (values.get(0) instanceof TableLiteral literal && literal.entries.isEmpty()) out.println();
+            if (declare) out.print("local ");
+
             var functionSugar = false;
             if (targets.size() == 1 && values.size() == 1 && values.get(0).isClosure() && targets.get(0).isFunctionName()) {
                 var closure = values.get(0);
-                //comment = "" + declareStart + " >= " + closure.closureUpvalueLine();
-                //System.out.println("" + declareStart + " >= " + closure.closureUpvalueLine());
                 // This check only works in Lua version 0x51
-                if (!declare || declareStart >= closure.closureUpvalueLine()) {
-                    functionSugar = true;
-                }
-                if (targets.get(0).isLocal() && closure.isUpvalueOf(targets.get(0).getIndex())) {
-                    functionSugar = true;
-                }
+                if (!declare || declareStart >= closure.closureUpvalueLine()) functionSugar = true;
+                if (targets.get(0).isLocal() && closure.isUpvalueOf(targets.get(0).getIndex())) functionSugar = true;
+
                 //if(closure.isUpvalueOf(targets.get(0).))
             }
             if (!functionSugar) {

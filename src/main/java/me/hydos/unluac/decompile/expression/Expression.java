@@ -8,7 +8,6 @@ import me.hydos.unluac.decompile.target.Target;
 import java.util.List;
 
 abstract public class Expression {
-
     public static final int PRECEDENCE_OR = 1;
     public static final int PRECEDENCE_AND = 2;
     public static final int PRECEDENCE_COMPARE = 3;
@@ -223,6 +222,15 @@ abstract public class Expression {
 
     public Expression getTable() {
         throw new IllegalStateException();
+    }
+
+    public boolean isField() {
+        try {
+            getField();
+            return true;
+        } catch (IllegalStateException e) {
+            return false;
+        }
     }
 
     public String getField() {

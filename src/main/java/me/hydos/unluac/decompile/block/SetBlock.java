@@ -4,7 +4,7 @@ import me.hydos.unluac.decompile.*;
 import me.hydos.unluac.decompile.condition.Condition;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.operation.Operation;
-import me.hydos.unluac.decompile.statement.Assignment;
+import me.hydos.unluac.decompile.statement.AssignmentStatement;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.bytecode.BFunction;
 
@@ -17,7 +17,7 @@ public class SetBlock extends Block {
     public final Condition cond;
     private final Registers r;
     private final boolean finalize = false;
-    private Assignment assign;
+    private AssignmentStatement assign;
 
     public SetBlock(BFunction function, Condition cond, int target, int begin, int end, Registers r) {
         super(function, begin, end, 2);
@@ -32,9 +32,14 @@ public class SetBlock extends Block {
     }
 
     @Override
+    public List<Statement> getStatements() {
+        return Collections.singletonList(assign);
+    }
+
+    @Override
     public void addStatement(Statement statement) {
-        if (!finalize && statement instanceof Assignment) {
-            this.assign = (Assignment) statement;
+        if (!finalize && statement instanceof AssignmentStatement) {
+            this.assign = (AssignmentStatement) statement;
         }/* else if(statement instanceof BooleanIndicator) {
       finalize = true;
     }*/
@@ -93,7 +98,7 @@ public class SetBlock extends Block {
                 @Override
                 public List<Statement> process(Registers r, Block block) {
                     if (r.isLocal(target, end - 1)) {
-                        return List.of(new Assignment(r.getTarget(target, end - 1), cond
+                        return List.of(new AssignmentStatement(r.getTarget(target, end - 1), cond
                                 .asExpression(r), end - 1));
                     }
                     r.setValue(target, end - 1, cond.asExpression(r));
@@ -108,7 +113,7 @@ public class SetBlock extends Block {
     @Override
     public void print(Decompiler d, Output out) {
         if (assign != null && assign.getFirstTarget() != null) {
-            var assignOut = new Assignment(assign.getFirstTarget(), getValue(), assign.getFirstLine());
+            var assignOut = new AssignmentStatement(assign.getFirstTarget(), getValue(), assign.getFirstLine());
             assignOut.print(d, out);
         } else {
             throw new IllegalStateException();
@@ -119,7 +124,7 @@ public class SetBlock extends Block {
         throw new IllegalStateException();
     }
 
-    public void useAssignment(Assignment assign) {
+    public void useAssignment(AssignmentStatement assign) {
         this.assign = assign;
         // branch.useExpression(assign.getFirstValue());
     }

@@ -11,11 +11,6 @@ public class Upvalues {
 
     private final LUpvalue[] upvalues;
 
-    @Deprecated
-    public Upvalues(BFunction func, Declaration[] parentDecls, int line) {
-        this(func, parentDecls == null ? null : Arrays.stream(parentDecls).toList(), line);
-    }
-
     public Upvalues(BFunction func, List<Declaration> parentDecls, int line) {
         this.upvalues = func.upvalues;
         for (var upvalue : upvalues) {

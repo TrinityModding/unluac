@@ -1,6 +1,7 @@
 package me.hydos.unluac.test;
 
 import me.hydos.unluac.Configuration;
+import me.hydos.unluac.Main;
 import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.bytecode.BHeader;
 import me.hydos.unluac.decompile.Decompiler;
@@ -23,7 +24,8 @@ class DecompileTests {
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
     private static final List<String> TESTS = List.of(
 //            "class",
-            "jump01"
+//            "jump01"
+            "assignmentTests"
     );
 
     @TestFactory
@@ -35,12 +37,12 @@ class DecompileTests {
             var disassembledSrc = Paths.get("src/test/resources/" + input + ".disassembled.lua");
 
             // Compile the src with native lua
+            Files.deleteIfExists(compiledSrc);
             LuaCompiler.compile(COMPILER_SPEC, originalSrc, compiledSrc);
             // Decompile the binary lua
 
-
+            Main.disassemble(compiledSrc.toAbsolutePath().toString(), disassembledSrc.toAbsolutePath().toString());
             var newDecompiler = new Decompiler(readBytecode(Files.readAllBytes(compiledSrc), new Configuration()), null, -1);
-
             var newResult = newDecompiler.getResult();
             newDecompiler.print(newResult, new Output());
             System.out.println("ok");

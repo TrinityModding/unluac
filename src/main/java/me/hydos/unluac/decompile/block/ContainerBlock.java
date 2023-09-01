@@ -37,6 +37,11 @@ abstract public class ContainerBlock extends Block {
     }
 
     @Override
+    public List<Statement> getStatements() {
+        return statements;
+    }
+
+    @Override
     public boolean hasCloseLine() {
         return closeType != CloseType.NONE;
     }

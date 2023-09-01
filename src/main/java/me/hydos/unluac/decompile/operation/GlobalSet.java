@@ -4,7 +4,7 @@ import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.block.Block;
 import me.hydos.unluac.decompile.expression.ConstantExpression;
 import me.hydos.unluac.decompile.expression.Expression;
-import me.hydos.unluac.decompile.statement.Assignment;
+import me.hydos.unluac.decompile.statement.AssignmentStatement;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.decompile.target.GlobalTarget;
 
@@ -23,7 +23,7 @@ public class GlobalSet extends Operation {
 
     @Override
     public List<Statement> process(Registers r, Block block) {
-        return List.of(new Assignment(new GlobalTarget(global), value, line));
+        return List.of(new AssignmentStatement(new GlobalTarget(global), value, line));
     }
 
 }

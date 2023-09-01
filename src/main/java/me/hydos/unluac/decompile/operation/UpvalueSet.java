@@ -3,7 +3,7 @@ package me.hydos.unluac.decompile.operation;
 import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.block.Block;
 import me.hydos.unluac.decompile.expression.Expression;
-import me.hydos.unluac.decompile.statement.Assignment;
+import me.hydos.unluac.decompile.statement.AssignmentStatement;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.decompile.target.UpvalueTarget;
 
@@ -22,7 +22,7 @@ public class UpvalueSet extends Operation {
 
     @Override
     public List<Statement> process(Registers r, Block block) {
-        return List.of(new Assignment(target, value, line));
+        return List.of(new AssignmentStatement(target, value, line));
     }
 
 }

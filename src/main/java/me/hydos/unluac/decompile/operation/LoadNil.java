@@ -4,7 +4,7 @@ import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.block.Block;
 import me.hydos.unluac.decompile.expression.ConstantExpression;
 import me.hydos.unluac.decompile.expression.Expression;
-import me.hydos.unluac.decompile.statement.Assignment;
+import me.hydos.unluac.decompile.statement.AssignmentStatement;
 import me.hydos.unluac.decompile.statement.Statement;
 
 import java.util.ArrayList;
@@ -25,7 +25,7 @@ public class LoadNil extends Operation {
     public List<Statement> process(Registers r, Block block) {
         List<Statement> assignments = new ArrayList<>(registerLast - registerFirst + 1);
         Expression nil = ConstantExpression.createNil(line);
-        Assignment declare = null;
+        AssignmentStatement declare = null;
         var scopeEnd = -1;
         for (var register = registerFirst; register <= registerLast; register++) {
             if (r.isAssignable(register, line)) {
@@ -37,12 +37,12 @@ public class LoadNil extends Operation {
             if (r.isAssignable(register, line) && r.getDeclaration(register, line).end == scopeEnd && register >= block.closeRegister) {
                 if ((r.getDeclaration(register, line).begin == line)) {
                     if (declare == null) {
-                        declare = new Assignment();
+                        declare = new AssignmentStatement();
                         assignments.add(declare);
                     }
                     declare.addLast(r.getTarget(register, line), nil, line);
                 } else {
-                    assignments.add(new Assignment(r.getTarget(register, line), nil, line));
+                    assignments.add(new AssignmentStatement(r.getTarget(register, line), nil, line));
                 }
             }
         }

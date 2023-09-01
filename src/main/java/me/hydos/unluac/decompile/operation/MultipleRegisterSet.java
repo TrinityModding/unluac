@@ -3,7 +3,7 @@ package me.hydos.unluac.decompile.operation;
 import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.block.Block;
 import me.hydos.unluac.decompile.expression.Expression;
-import me.hydos.unluac.decompile.statement.Assignment;
+import me.hydos.unluac.decompile.statement.AssignmentStatement;
 import me.hydos.unluac.decompile.statement.Statement;
 
 import java.util.Collections;
@@ -25,7 +25,7 @@ public class MultipleRegisterSet extends Operation {
     @Override
     public List<Statement> process(Registers r, Block block) {
         var count = 0;
-        var assignment = new Assignment();
+        var assignment = new AssignmentStatement();
         for (var register = registerFirst; register <= registerLast; register++) {
             r.setValue(register, line, value);
             if (r.isAssignable(register, line)) {

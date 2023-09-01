@@ -3,6 +3,8 @@ package me.hydos.unluac.decompile;
 import me.hydos.unluac.Version;
 import me.hydos.unluac.bytecode.*;
 
+import java.util.Objects;
+
 public class Constant {
 
     private final Type type;
@@ -222,4 +224,16 @@ public class Constant {
         STRING,
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        var constant = (Constant) o;
+        return bool == constant.bool && type == constant.type && Objects.equals(number, constant.number) && Objects.equals(string, constant.string);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, bool, number, string);
+    }
 }

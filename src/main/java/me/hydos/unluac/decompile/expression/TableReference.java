@@ -4,10 +4,12 @@ import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 
+import java.util.Objects;
+
 public class TableReference extends Expression {
 
-    private final Expression table;
-    private final Expression index;
+    public Expression table;
+    public Expression index;
 
     public TableReference(Expression table, Expression index) {
         super(PRECEDENCE_ATOMIC);
@@ -76,5 +78,16 @@ public class TableReference extends Expression {
         return index.asName();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        var that = (TableReference) o;
+        return Objects.equals(table, that.table) && Objects.equals(index, that.index);
+    }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(table, index);
+    }
 }

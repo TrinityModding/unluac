@@ -5,6 +5,8 @@ import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 
+import java.util.Objects;
+
 public class VariableTarget extends Target {
 
     public final Declaration decl;
@@ -45,12 +47,16 @@ public class VariableTarget extends Target {
         return decl.register;
     }
 
-    public boolean equals(Object obj) {
-        if (obj instanceof VariableTarget t) {
-            return decl == t.decl;
-        } else {
-            return false;
-        }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        var that = (VariableTarget) o;
+        return Objects.equals(decl, that.decl);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(decl);
+    }
 }

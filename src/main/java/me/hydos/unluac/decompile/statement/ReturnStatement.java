@@ -8,20 +8,20 @@ import me.hydos.unluac.decompile.expression.Expression;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public class Return extends Statement {
+public class ReturnStatement extends Statement {
 
-    private final Expression[] values;
+    public Expression[] values;
 
-    public Return() {
+    public ReturnStatement() {
         values = new Expression[0];
     }
 
-    public Return(Expression value) {
+    public ReturnStatement(Expression value) {
         values = new Expression[1];
         values[0] = value;
     }
 
-    public Return(Expression[] values) {
+    public ReturnStatement(Expression[] values) {
         this.values = values;
     }
 

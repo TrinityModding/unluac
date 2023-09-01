@@ -3,7 +3,7 @@ package me.hydos.unluac.decompile.operation;
 import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.block.Block;
 import me.hydos.unluac.decompile.expression.Expression;
-import me.hydos.unluac.decompile.statement.Return;
+import me.hydos.unluac.decompile.statement.ReturnStatement;
 import me.hydos.unluac.decompile.statement.Statement;
 
 import java.util.List;
@@ -25,7 +25,7 @@ public class ReturnOperation extends Operation {
 
     @Override
     public List<Statement> process(Registers r, Block block) {
-        return List.of(new Return(values));
+        return List.of(new ReturnStatement(values));
     }
 
 }

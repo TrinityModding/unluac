@@ -9,7 +9,7 @@ import java.util.Collections;
 
 public class TableLiteral extends Expression {
 
-    private final ArrayList<Entry> entries;
+    public final ArrayList<Entry> entries;
     private final int hashSize;
     private boolean isObject = true;
     private boolean isList = true;

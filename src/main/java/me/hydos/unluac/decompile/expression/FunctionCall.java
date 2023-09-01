@@ -7,12 +7,13 @@ import me.hydos.unluac.decompile.Walker;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Objects;
 
 public class FunctionCall extends Expression {
 
-    private final Expression function;
-    private final Expression[] arguments;
-    private final boolean multiple;
+    public Expression function;
+    public Expression[] arguments;
+    public boolean multiple;
 
     public FunctionCall(Expression function, Expression[] arguments, boolean multiple) {
         super(PRECEDENCE_ATOMIC);
@@ -31,16 +32,16 @@ public class FunctionCall extends Expression {
     }
 
     @Override
-    public void print(Decompiler d, Output out) {
+    public void print(Decompiler decompiler, Output out) {
         var args = new ArrayList<Expression>(arguments.length);
         if (isMethodCall()) {
             var obj = function.getTable();
             if (obj.isUngrouped()) {
                 out.print("(");
-                obj.print(d, out);
+                obj.print(decompiler, out);
                 out.print(")");
             } else {
-                obj.print(d, out);
+                obj.print(decompiler, out);
             }
             out.print(":");
             out.print(function.getField());
@@ -48,15 +49,15 @@ public class FunctionCall extends Expression {
         } else {
             if (function.isUngrouped()) {
                 out.print("(");
-                function.print(d, out);
+                function.print(decompiler, out);
                 out.print(")");
             } else {
-                function.print(d, out);
+                function.print(decompiler, out);
             }
             Collections.addAll(args, arguments);
         }
         out.print("(");
-        printSequence(d, out, args, false, true);
+        printSequence(decompiler, out, args, false, true);
         out.print(")");
     }
 
@@ -99,4 +100,18 @@ public class FunctionCall extends Expression {
         return function.isMemberAccess() && arguments.length > 0 && function.getTable() == arguments[0];
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        var that = (FunctionCall) o;
+        return multiple == that.multiple && Objects.equals(function, that.function) && Arrays.equals(arguments, that.arguments);
+    }
+
+    @Override
+    public int hashCode() {
+        var result = Objects.hash(function, multiple);
+        result = 31 * result + Arrays.hashCode(arguments);
+        return result;
+    }
 }

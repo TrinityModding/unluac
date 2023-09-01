@@ -6,6 +6,8 @@ import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.bytecode.BFunction;
 
+import java.util.List;
+
 public class Goto extends Block {
 
     public final int target;
@@ -17,6 +19,11 @@ public class Goto extends Block {
 
     @Override
     public void addStatement(Statement statement) {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public List<Statement> getStatements() {
         throw new IllegalStateException();
     }
 

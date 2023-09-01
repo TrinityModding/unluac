@@ -7,6 +7,8 @@ import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.bytecode.LBoolean;
 import me.hydos.unluac.bytecode.LNil;
 
+import java.util.Objects;
+
 public class ConstantExpression extends Expression {
 
     private final Constant constant;
@@ -125,4 +127,16 @@ public class ConstantExpression extends Expression {
         return !constant.isString() || constant.asName().length() <= 10;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        var that = (ConstantExpression) o;
+        return index == that.index && Objects.equals(constant, that.constant);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(constant, index);
+    }
 }

@@ -3,7 +3,7 @@ package me.hydos.unluac.decompile.operation;
 import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.block.Block;
 import me.hydos.unluac.decompile.expression.Expression;
-import me.hydos.unluac.decompile.statement.Assignment;
+import me.hydos.unluac.decompile.statement.AssignmentStatement;
 import me.hydos.unluac.decompile.statement.Statement;
 
 import java.util.Collections;
@@ -36,7 +36,7 @@ public class RegisterSet extends Operation {
     */
         if (r.isAssignable(register, line)) {
             //System.out.println("-- assignment!");
-            return List.of(new Assignment(r.getTarget(register, line), value, line));
+            return List.of(new AssignmentStatement(r.getTarget(register, line), value, line));
         } else {
             return Collections.emptyList();
         }

@@ -3,7 +3,7 @@ package me.hydos.unluac.decompile.block;
 import me.hydos.unluac.decompile.CloseType;
 import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.statement.Return;
+import me.hydos.unluac.decompile.statement.ReturnStatement;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.bytecode.BFunction;
 
@@ -42,7 +42,7 @@ public class OuterBlock extends ContainerBlock {
     public void print(Decompiler d, Output out) {
         /* extra return statement */
         var last = statements.size() - 1;
-        if (last < 0 || !(statements.get(last) instanceof Return))
+        if (last < 0 || !(statements.get(last) instanceof ReturnStatement))
             throw new IllegalStateException(statements.get(last).toString());
         statements.remove(last);
         Statement.printSequence(d, out, statements);

@@ -25,6 +25,7 @@ public class ControlFlowHandler {
         state.r = r;
         state.bytecodeReader = d.reader;
         state.labels = new boolean[d.reader.length + 1];
+        state.d = d;
         find_reverse_targets(state);
         find_branches(state);
         combine_branches(state);

@@ -7,26 +7,26 @@ import me.hydos.unluac.decompile.block.DoEndBlock;
 import me.hydos.unluac.decompile.block.OuterBlock;
 import me.hydos.unluac.decompile.expression.*;
 import me.hydos.unluac.decompile.operation.*;
-import me.hydos.unluac.decompile.statement.Assignment;
-import me.hydos.unluac.decompile.statement.Label;
-import me.hydos.unluac.decompile.statement.Statement;
+import me.hydos.unluac.decompile.statement.*;
 import me.hydos.unluac.decompile.target.*;
 import me.hydos.unluac.util.Stack;
 
 import java.util.*;
 
 public class Decompiler {
-
+    private static final int REWIND_LENGTH = 20;
     public final BFunction bytecode;
     public final BytecodeReader reader;
     public final Version bytecodeVersion;
     public final int bytecodeCodeLength;
+    private final List<Declaration> allDeclarations;
     public int registers;
     public final Upvalues upValues;
     public final BFunction[] functions;
     public final int paramCount;
     public final int vararg;
     public final List<Declaration> declarations;
+    public final List<Declaration> deadDeclarations;
     private FunctionQuery bytecodeQuery;
 
     public Decompiler(BFunction target, List<Declaration> parentDeclarations, int startLine) {
@@ -36,13 +36,16 @@ public class Decompiler {
         this.bytecodeCodeLength = bytecode.code.length;
         this.registers = bytecode.maximumStackSize;
         if (!target.stripped) System.out.println("Warning: This decompiler ignores debug info.");
-        this.upValues = new Upvalues(bytecode, parentDeclarations /* FIXME */, startLine);
+        this.upValues = new Upvalues(bytecode, parentDeclarations, startLine);
         this.functions = bytecode.functions;
         this.paramCount = bytecode.paramCount;
         this.vararg = bytecode.vararg;
         this.declarations = readDecls();
+        this.deadDeclarations = new ArrayList<>();
         this.bytecodeQuery = new FunctionQuery(bytecode);
-
+        this.allDeclarations = new ArrayList<>();
+        if (parentDeclarations != null) allDeclarations.addAll(parentDeclarations);
+        allDeclarations.addAll(declarations);
     }
 
     private List<Declaration> readDecls() {
@@ -79,8 +82,153 @@ public class Decompiler {
         processSequence(result, blocks, reader.length);
         for (var block : blocks) block.resolve(result.registers);
         handleUnusedConstants(result.outer);
-        moveCodeToOutputStage(result, blocks, result.outer);
+        highLevelWalkFix(blocks);
         return result;
+    }
+
+    private int handleLocalCallCleanup(ReturnStatement returnStatement, LocalVariable localVariable, List<Statement> pseudoCode, int i) {
+        // Search backwards for the declaration
+        for (var j = i - 1; j >= 0; j--) {
+            var lineBefore = pseudoCode.get(j);
+            if (lineBefore instanceof AssignmentStatement assignmentStatement && assignmentStatement.targets.get(0) instanceof VariableTarget varTarget && varTarget.decl.equals(localVariable.decl)) {
+                returnStatement.values[0] = assignmentStatement.values.get(0);
+                pseudoCode.remove(lineBefore);
+                return Math.max(j - REWIND_LENGTH, 0);
+            }
+        }
+
+        return i;
+    }
+
+    private int handleFunctionCallCleanup(FunctionCall functionCall, List<Statement> pseudoCode, int i, AssignmentStatement returningFunction) {
+        if (functionCall.function instanceof LocalVariable) {
+            // Check if the last argumentLength - 1 amount of statements are assignments
+            var isMethodAssignment = true;
+            var assignments = new ArrayList<AssignmentStatement>();
+
+            for (var offsetI = i - functionCall.arguments.length - 1; offsetI >= 0 && offsetI < i; offsetI++) {
+                var statement = pseudoCode.get(offsetI);
+                if (statement instanceof AssignmentStatement assignmentStatement)
+                    assignments.add(assignmentStatement);
+                else {
+                    isMethodAssignment = false;
+                    break;
+                }
+            }
+
+            // Make sure assignment targets one local
+            for (var assignment : assignments) {
+                if (assignment.targets.size() > 1) {
+                    isMethodAssignment = false;
+                    break;
+                }
+            }
+
+            if (isMethodAssignment && !assignments.isEmpty()) {
+                var functionAssignment = assignments.get(0);
+                if (!functionAssignment.targets.get(0).isDeclaration(((LocalVariable) functionCall.function).decl))
+                    return i;
+
+                // Where the value 'i' should return to after this has run to make sure it doesn't miss anything
+                var loopReturnPoint = i - (functionCall.arguments.length + 1 + REWIND_LENGTH);
+
+                // Remove old data
+                pseudoCode.removeAll(assignments);
+
+                // Replace data with new data
+                functionCall.function = functionAssignment.values.get(0);
+                for (var j = 1; j < assignments.size(); j++)
+                    functionCall.arguments[j - 1] = assignments.get(j).values.get(0);
+
+                // Mark declarations as invalid to stop generation
+                for (var assignment : assignments)
+                    deadDeclarations.add(((VariableTarget) assignment.targets.get(0)).decl);
+
+                return Math.max(loopReturnPoint, 0);
+            }
+        } else if (functionCall.function instanceof TableReference tableReference && i > 0) {
+            var previousLine = pseudoCode.get(i - 1);
+
+            if (tableReference.table instanceof LocalVariable localVariable) {
+                // If the previous line assigned the variable the table is pointing to. Basically checking for:
+                // local L_0 = blahblah()
+                // local L_1 = --> L_0.something()
+                if (previousLine instanceof AssignmentStatement assignmentStatement && assignmentStatement.targets.get(0) instanceof VariableTarget varTarget && varTarget.decl.equals(localVariable.decl)) {
+                    tableReference.table = assignmentStatement.getValue(0);
+                    pseudoCode.remove(previousLine);
+                    return Math.max(i - REWIND_LENGTH, 0);
+                }
+            }
+        }
+
+        return i;
+    }
+
+    /**
+     * Walk over the generated pseudo-lua to fix higher level mistakes which require more context
+     */
+    private void highLevelWalkFix(List<Block> blocks) {
+        for (var block : blocks) {
+            try {
+                var pseudoCode = block.getStatements();
+
+                var madeChanges = true;
+                while (madeChanges) {
+                    madeChanges = false;
+                    // Clean up function calls by removing duplicate assignments
+                    for (var i = 0; i < pseudoCode.size(); i++) {
+                        try {
+                            var line = pseudoCode.get(i);
+                            if (line instanceof FunctionCallStatement functionCall) {
+                                var oldI = i;
+                                i = handleFunctionCallCleanup(functionCall.call, pseudoCode, i, null);
+                                if (oldI != i) madeChanges = true;
+                            } else if (line instanceof AssignmentStatement assignmentStatement && assignmentStatement.values.size() == 1 && assignmentStatement.values.get(0) instanceof FunctionCall functionCall) {
+                                var oldI = i;
+                                i = handleFunctionCallCleanup(functionCall, pseudoCode, i, assignmentStatement);
+                                if (oldI != i) madeChanges = true;
+                            } else if (line instanceof ReturnStatement returnStatement && returnStatement.values.length == 1) {
+                                if (returnStatement.values[0] instanceof FunctionCall functionCall) {
+                                    var oldI = i;
+                                    i = handleFunctionCallCleanup(functionCall, pseudoCode, i, null);
+                                    if (oldI != i) madeChanges = true;
+                                } else if (returnStatement.values[0] instanceof LocalVariable localVariable) {
+                                    var oldI = i;
+                                    i = handleLocalCallCleanup(returnStatement, localVariable, pseudoCode, i);
+                                    if (oldI != i) madeChanges = true;
+                                }
+                            }
+                        } catch (IllegalStateException ignored) {
+                        }
+                    }
+                }
+
+                // Fix useless reassignment in (I assume) struct like objects
+                var assignments = new HashMap<Target, Expression>();
+
+                for (var i = 0; i < pseudoCode.size(); i++) {
+                    var line = pseudoCode.get(i);
+                    if (line instanceof AssignmentStatement assignment && assignment.targets.size() == 1) { /* TODO: support > 1 target. unlikely to happen in real applications though */
+                        if (assignment.values.get(0).equals(equalsSearchMap(assignments, assignment.targets.get(0))))
+                            pseudoCode.remove(line);
+                        else assignments.put(assignment.targets.get(0), assignment.values.get(0));
+                    }
+                }
+            } catch (IllegalStateException ignored) {
+            }
+        }
+    }
+
+    private <T, R> R equalsSearchMap(HashMap<T, R> map, T search) {
+        for (var entry : map.entrySet()) if (entry.getKey().equals(search)) return entry.getValue();
+        return null;
+    }
+
+    private Declaration findDeclaration(String name) {
+        return declarations.stream()
+                .filter(declaration -> declaration.name.equals(name))
+                .findFirst()
+                .orElse(null);
     }
 
     public void print(State state, Output out) {
@@ -96,12 +244,16 @@ public class Decompiler {
             case ELLIPSIS -> {
             }
         }
+
         for (var i = initdeclcount; i < declarations.size(); i++) {
             if (declarations.get(i).begin == 0) {
                 initdecls.add(declarations.get(i));
             }
         }
-        if (initdecls.size() > 0) {
+
+        initdecls.removeAll(deadDeclarations);
+
+        if (!initdecls.isEmpty()) {
             out.print("local ");
             out.print(initdecls.get(0).name);
             for (var i = 1; i < initdecls.size(); i++) {
@@ -169,7 +321,7 @@ public class Decompiler {
                     if (!locals.isEmpty() && next.allowsPreDeclare() &&
                         (locals.get(0).end > next.scopeEnd() || locals.get(0).register < next.closeRegister)
                     ) {
-                        var declaration = new Assignment();
+                        var declaration = new AssignmentStatement();
                         var declareEnd = locals.get(0).end;
                         declaration.declare(locals.get(0).begin);
                         while (!locals.isEmpty() && locals.get(0).end == declareEnd && (next.closeRegister == -1 || locals.get(0).register < next.closeRegister)) {
@@ -222,7 +374,7 @@ public class Decompiler {
             }
 
             // Need to capture the assignment (if any) to attach local variable declarations
-            Assignment assignment = null;
+            AssignmentStatement assignment = null;
 
             for (var operation : operations) {
                 var operationAssignment = processOperation(state, operation, line, nextline, block);
@@ -241,7 +393,7 @@ public class Decompiler {
                 var scopeEnd = -1;
                 if (assignment == null) {
                     // Create a new Assignment to hold the declarations
-                    assignment = new Assignment();
+                    assignment = new AssignmentStatement();
                     block.addStatement(assignment);
                 } else {
                     for (var decl : locals) {
@@ -650,9 +802,8 @@ public class Decompiler {
                 if (C == 0) C = registers - A + 1;
                 var function = r.getExpression(A, line);
                 var arguments = new Expression[B - 1];
-                for (var register = A + 1; register <= A + B - 1; register++) {
+                for (var register = A + 1; register <= A + B - 1; register++)
                     arguments[register - A - 1] = r.getExpression(register, line);
-                }
                 var value = new FunctionCall(function, arguments, multiple);
                 if (C == 1) {
                     operations.add(new CallOperation(line, value));
@@ -780,15 +931,15 @@ public class Decompiler {
         }
     }
 
-    private Assignment processOperation(State state, Operation operation, int line, int nextLine, Block block) {
+    private AssignmentStatement processOperation(State state, Operation operation, int line, int nextLine, Block block) {
         var r = state.registers;
         var skip = state.skip;
-        Assignment assign = null;
+        AssignmentStatement assign = null;
         var stmts = operation.process(r, block);
         if (stmts.size() == 1) {
             var stmt = stmts.get(0);
-            if (stmt instanceof Assignment) {
-                assign = (Assignment) stmt;
+            if (stmt instanceof AssignmentStatement) {
+                assign = (AssignmentStatement) stmt;
             }
             if (assign != null) {
                 var declare = false;
@@ -820,9 +971,5 @@ public class Decompiler {
             block.addStatement(stmt);
         }
         return assign;
-    }
-
-    public void moveCodeToOutputStage(State state, List<Block> blocks, Block outer) {
-        // TODO: convert intermediate rep to output rep
     }
 }
