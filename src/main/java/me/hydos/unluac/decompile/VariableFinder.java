@@ -11,11 +11,11 @@ public class VariableFinder {
     }
 
     private static boolean isConstantReference(Decompiler d, int value) {
-        return d.function.header.extractor.is_k(value);
+        return d.bytecode.header.extractor.is_k(value);
     }
 
     public static Declaration[] process(Decompiler d, int args, int registers) {
-        var code = d.bytecodeReader;
+        var code = d.reader;
         var states = new RegisterStates(registers, code.length());
         var skip = new boolean[code.length()];
         for (var line = 1; line <= code.length(); line++) {
@@ -93,7 +93,7 @@ public class VariableFinder {
                     states.setRead(B, line);
                 }
                 case CLOSURE -> {
-                    var f = d.function.functions[code.Bx(line)];
+                    var f = d.bytecode.functions[code.Bx(line)];
                     for (var upvalue : f.upvalues) {
                         if (upvalue.instack) {
                             states.setLocalRead(upvalue.idx, line);
@@ -216,9 +216,9 @@ public class VariableFinder {
             }
             var is_arg = false;
             if (register == args) {
-                switch (d.getVersion().varargtype.get()) {
+                switch (d.bytecodeVersion.varargtype.get()) {
                     case ARG, HYBRID -> {
-                        if ((d.function.vararg & 1) != 0) {
+                        if ((d.bytecode.vararg & 1) != 0) {
                             local = true;
                             is_arg = true;
                         }
@@ -267,7 +267,7 @@ public class VariableFinder {
                 } else {
                     name = id + register + "_" + lc++;
                 }
-                var decl = new Declaration(name, start, code.length() + d.getVersion().outerblockscopeadjustment.get());
+                var decl = new Declaration(name, start, code.length() + d.bytecodeVersion.outerblockscopeadjustment.get());
                 decl.register = register;
                 declList.add(decl);
             }

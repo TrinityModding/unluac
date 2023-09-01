@@ -40,7 +40,7 @@ public class UpvalueExpression extends Expression {
 
     @Override
     public boolean isEnvironmentTable(Decompiler d) {
-        return d.getVersion().isEnvironmentTable(name);
+        return d.bytecodeVersion.isEnvironmentTable(name);
     }
 
 }

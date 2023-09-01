@@ -71,7 +71,7 @@ public class SetBlock extends Block {
     }
 
     @Override
-    public Operation process(final Decompiler d) {
+    public Operation process(Decompiler d) {
         if (ControlFlowHandler.verbose) {
             System.out.print("set expression: ");
             cond.asExpression(r).print(d, new Output());

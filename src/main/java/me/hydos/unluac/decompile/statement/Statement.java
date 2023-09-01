@@ -20,7 +20,7 @@ abstract public class Statement {
         for (var i = 0; i < n; i++) {
             var last = (i + 1 == n);
             var stmt = stmts.get(i);
-            if (stmt.beginsWithParen() && (i > 0 || d.getVersion().allowpreceedingsemicolon.get())) {
+            if (stmt.beginsWithParen() && (i > 0 || d.bytecodeVersion.allowpreceedingsemicolon.get())) {
                 out.print(";");
             }
             if (last) {

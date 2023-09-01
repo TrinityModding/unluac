@@ -9,6 +9,7 @@ public class Constant {
     private final boolean bool;
     private final LNumber number;
     private final String string;
+
     public Constant(int constant) {
         type = Type.NUMBER;
         bool = false;
@@ -57,7 +58,7 @@ public class Constant {
             case STRING -> {
                 var newlines = 0;
                 var unprintable = 0;
-                var rawstring = d.getConfiguration().rawstring;
+                var rawstring = false;
                 for (var i = 0; i < string.length(); i++) {
                     var c = string.charAt(i);
                     if (c == '\n') {
@@ -69,7 +70,7 @@ public class Constant {
                 var longString = (newlines > 1 || (newlines == 1 && string.indexOf('\n') != string.length() - 1)); // heuristic
                 longString = longString && unprintable == 0; // can't escape and for robustness, don't want to allow non-ASCII output
                 longString = longString && !string.contains("[["); // triggers compatibility error in 5.1 TODO: avoidable?
-                if (d.function.header.version.usenestinglongstrings.get()) {
+                if (d.bytecode.header.version.usenestinglongstrings.get()) {
                     longString = longString && !string.contains("]]") && !string.endsWith("]"); // no piping TODO: allow proper nesting
                 }
                 if (longString) {

@@ -1,18 +1,11 @@
 package me.hydos.unluac.decompile.block;
 
+import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.decompile.*;
-import me.hydos.unluac.decompile.condition.AndCondition;
 import me.hydos.unluac.decompile.condition.Condition;
-import me.hydos.unluac.decompile.condition.FinalSetCondition;
-import me.hydos.unluac.decompile.condition.OrCondition;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.operation.Operation;
-import me.hydos.unluac.decompile.statement.Assignment;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.bytecode.BFunction;
-
-import java.util.Collections;
-import java.util.List;
 
 public class IfThenEndBlock extends ContainerBlock {
 
@@ -66,55 +59,7 @@ public class IfThenEndBlock extends ContainerBlock {
     @Override
     public Operation process(Decompiler d) {
         final var test = cond.register();
-        //System.err.println(cond);
-        if (!scopeUsed && !redirected && test >= 0 && r.getUpdated(test, end - 1) >= begin && !d.getNoDebug()) {
-            // Check for a single assignment
-            Assignment assign = null;
-            if (statements.size() == 1) {
-                var stmt = statements.get(0);
-                if (stmt instanceof Assignment) {
-                    assign = (Assignment) stmt;
-                    if (assign.getArity() > 1) {
-                        var line = assign.getFirstLine();
-                        if (line >= begin && line < end) {
-                            assign = null;
-                        }
-                    }
-                }
-            }
-            if (assign != null && (cond.isRegisterTest() || cond.isOrCondition() || assign.isDeclaration()) && assign.getLastTarget().isLocal() && assign.getLastTarget().getIndex() == test || statements.isEmpty()) {
-                var finalset = new FinalSetCondition(end - 1, test);
-                finalset.type = FinalSetCondition.Type.VALUE;
-                Condition combined;
-
-                if (cond.invertible()) {
-                    combined = new OrCondition(cond.inverse(), finalset);
-                } else {
-                    combined = new AndCondition(cond, finalset);
-                }
-                final Assignment fassign;
-                if (assign != null) {
-                    fassign = assign;
-                    fassign.replaceLastValue(combined.asExpression(r));
-                } else {
-                    fassign = null;
-                }
-                final var fcombined = combined;
-                return new Operation(end - 1) {
-
-                    @Override
-                    public List<Statement> process(Registers r, Block block) {
-                        if (fassign == null) {
-                            r.setValue(test, end - 1, fcombined.asExpression(r));
-                            return Collections.emptyList();
-                        } else {
-                            return List.of(fassign);
-                        }
-                    }
-
-                };
-            }
-        }
+        if (!scopeUsed && !redirected && test >= 0) r.getUpdated(test, end - 1);
         return super.process(d);
     }
 

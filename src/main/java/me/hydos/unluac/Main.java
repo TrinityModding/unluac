@@ -15,7 +15,6 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @Deprecated // FIXME: combination of logic and CLI handling. Tisk tisk...
@@ -74,8 +73,8 @@ public class Main {
                     } catch (IOException e) {
                         error(e.getMessage(), false);
                     }
-                    var d = new Decompiler(lmain);
-                    var result = d.decompile();
+                    var d = new Decompiler(lmain, null, -1);
+                    var result = d.getResult();
                     d.print(result, config.getOutput());
                 }
                 case DISASSEMBLE -> {
@@ -151,8 +150,8 @@ public class Main {
 
     public static void decompile(String in, String out, Configuration config) throws IOException {
         var lmain = file_to_function(in, config);
-        var d = new Decompiler(lmain);
-        var result = d.decompile();
+        var d = new Decompiler(lmain, null, -1);
+        var result = d.getResult();
         final var pout = new PrintStream(out);
         d.print(result, new Output(new OutputProvider() {
 

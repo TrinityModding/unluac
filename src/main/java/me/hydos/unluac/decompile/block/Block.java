@@ -2,7 +2,6 @@ package me.hydos.unluac.decompile.block;
 
 import me.hydos.unluac.decompile.CloseType;
 import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.NewDecompiler;
 import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.operation.Operation;
 import me.hydos.unluac.decompile.statement.Statement;
@@ -124,20 +123,7 @@ abstract public class Block extends Statement implements Comparable<Block> {
         }
     }
 
-    @Deprecated
     public Operation process(Decompiler d) {
-        final Statement statement = this;
-        return new Operation(end - 1) {
-
-            @Override
-            public List<Statement> process(Registers r, Block block) {
-                return List.of(statement);
-            }
-
-        };
-    }
-
-    public Operation process() {
         final Statement statement = this;
         return new Operation(end - 1) {
             @Override

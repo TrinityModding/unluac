@@ -19,7 +19,7 @@ public class ControlFlowHandler {
     private ControlFlowHandler() {
     }
 
-    public static Result process(NewDecompiler d, Registers r) {
+    public static Result process(Decompiler d, Registers r) {
         var state = new State();
         state.function = d.bytecode;
         state.r = r;
@@ -37,30 +37,6 @@ public class ControlFlowHandler {
         find_set_blocks(state);
         find_pseudo_goto_statements(state, d.declarations);
         find_do_blocks(state, d.declarations);
-        Collections.sort(state.blocks);
-        return new Result(state);
-    }
-
-    @Deprecated
-    public static Result process(Decompiler d, Registers r) {
-        var state = new State();
-        state.d = d;
-        state.function = d.function;
-        state.r = r;
-        state.bytecodeReader = d.bytecodeReader;
-        state.labels = new boolean[d.bytecodeReader.length + 1];
-        find_reverse_targets(state);
-        find_branches(state);
-        combine_branches(state);
-        resolve_lines(state);
-        initialize_blocks(state);
-        find_fixed_blocks(state);
-        find_while_loops(state, Arrays.stream(d.declList).toList());
-        find_repeat_loops(state);
-        find_if_break(state, Arrays.stream(d.declList).toList());
-        find_set_blocks(state);
-        find_pseudo_goto_statements(state, Arrays.stream(d.declList).toList());
-        find_do_blocks(state, Arrays.stream(d.declList).toList());
         Collections.sort(state.blocks);
         return new Result(state);
     }

@@ -7,7 +7,7 @@ public class Validator {
     }
 
     public static void process(Decompiler d) {
-        var code = d.bytecodeReader;
+        var code = d.reader;
         for (var line = 1; line <= code.length; line++) {
             switch (code.op(line)) {
                 case EQ: {

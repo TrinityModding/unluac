@@ -42,9 +42,8 @@ public class OuterBlock extends ContainerBlock {
     public void print(Decompiler d, Output out) {
         /* extra return statement */
         var last = statements.size() - 1;
-        if (last < 0 || !(statements.get(last) instanceof Return)) {
+        if (last < 0 || !(statements.get(last) instanceof Return))
             throw new IllegalStateException(statements.get(last).toString());
-        }
         statements.remove(last);
         Statement.printSequence(d, out, statements);
     }
