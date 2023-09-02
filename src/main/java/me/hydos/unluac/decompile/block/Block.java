@@ -7,6 +7,7 @@ import me.hydos.unluac.decompile.Registers;
 import me.hydos.unluac.decompile.operation.Operation;
 import me.hydos.unluac.decompile.statement.Statement;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,7 +32,7 @@ abstract public class Block extends Statement implements Comparable<Block> {
     public abstract void addStatement(Statement statement);
 
     public List<Statement> getStatements() {
-        throw new RuntimeException("getStatements Not Implemented in " + getClass().getName());
+        return Collections.emptyList();
     }
 
     public void resolve(Registers r) {

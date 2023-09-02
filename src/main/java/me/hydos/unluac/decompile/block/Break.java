@@ -6,6 +6,9 @@ import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.bytecode.BFunction;
 
+import java.util.Collections;
+import java.util.List;
+
 public class Break extends Block {
 
     public final int target;
