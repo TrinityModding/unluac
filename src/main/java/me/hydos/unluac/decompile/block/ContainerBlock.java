@@ -10,7 +10,7 @@ import java.util.List;
 
 abstract public class ContainerBlock extends Block {
 
-    protected final List<Statement> statements;
+    public List<Statement> statements;
     protected final CloseType closeType;
     protected final int closeLine;
     protected boolean usingClose;
@@ -20,7 +20,7 @@ abstract public class ContainerBlock extends Block {
         this.closeType = closeType;
         this.closeLine = closeLine;
         this.usingClose = false;
-        statements = new ArrayList<>(Math.max(4, end - begin + 1));
+        this.statements = new ArrayList<>(Math.max(4, end - begin + 1));
     }
 
     @Override

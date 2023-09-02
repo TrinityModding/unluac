@@ -59,4 +59,9 @@ public class VariableTarget extends Target {
     public int hashCode() {
         return Objects.hash(decl);
     }
+
+    @Override
+    public String toString() {
+        return "VariableTarget{" + "local=" + decl.name + '}';
+    }
 }

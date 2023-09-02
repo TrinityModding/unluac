@@ -6,9 +6,9 @@ import me.hydos.unluac.decompile.Walker;
 
 public class BinaryExpression extends Expression {
 
-    private final String op;
-    private final Expression left;
-    private final Expression right;
+    public String op;
+    public Expression left;
+    public Expression right;
     private final int associativity;
 
     public BinaryExpression(String op, Expression left, Expression right, int precedence, int associativity) {

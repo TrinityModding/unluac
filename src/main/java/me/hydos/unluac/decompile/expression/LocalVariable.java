@@ -53,4 +53,9 @@ public class LocalVariable extends Expression {
     public int hashCode() {
         return Objects.hash(decl);
     }
+
+    @Override
+    public String toString() {
+        return "LocalVariable{" + "local=" + decl.name + '}';
+    }
 }

@@ -7,7 +7,7 @@ import me.hydos.unluac.decompile.Walker;
 public class UnaryExpression extends Expression {
 
     private final String op;
-    private final Expression expression;
+    public Expression expression;
 
     public UnaryExpression(String op, Expression expression, int precedence) {
         super(precedence);

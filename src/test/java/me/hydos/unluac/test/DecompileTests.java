@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 class DecompileTests {
+    private static final String MAIN = "F:/PokemonScarlet/arc/script/lua/bin/release/main/main.blua";
     private static final LuaSpec COMPILER_SPEC = new LuaSpec(0x54, true);
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
     private static final List<String> TESTS = List.of(
@@ -32,19 +33,16 @@ class DecompileTests {
     Stream<DynamicTest> generateTestCases() {
         ThrowingConsumer<String> testExecutor = input -> {
             var originalSrc = Paths.get("src/test/resources/" + input + ".lua");
-            var compiledSrc = Paths.get("F:/PokemonScarlet/arc/script/lua/bin/release/main/main.blua");
+            var compiledSrc = Paths.get(".gradle/test" + input + ".blua");
             var decompiledSrc = Paths.get("src/test/resources/" + input + ".decompiled.lua");
             var disassembledSrc = Paths.get("src/test/resources/" + input + ".disassembled.lua");
 
             // Compile the src with native lua
-//            Files.deleteIfExists(compiledSrc);
-//            LuaCompiler.compile(COMPILER_SPEC, originalSrc, compiledSrc);
+            Files.deleteIfExists(compiledSrc);
+            LuaCompiler.compile(COMPILER_SPEC, originalSrc, compiledSrc);
             // Decompile the binary lua
-
-//            Main.disassemble(compiledSrc.toAbsolutePath().toString(), disassembledSrc.toAbsolutePath().toString());
-            var newDecompiler = new Decompiler(readBytecode(Files.readAllBytes(compiledSrc), new Configuration()), null, -1);
-            var newResult = newDecompiler.getResult();
-            newDecompiler.print(newResult, new Output());
+            Main.disassemble(compiledSrc.toAbsolutePath().toString(), disassembledSrc.toAbsolutePath().toString());
+            Main.decompile(compiledSrc.toAbsolutePath().toString(), decompiledSrc.toAbsolutePath().toString(), new Configuration());
         };
 
         return DynamicTest.stream(TESTS.stream(), input -> input, testExecutor);

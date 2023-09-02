@@ -8,4 +8,7 @@ public interface OutputProvider {
 
     void println();
 
+    default void println(String s) {
+        print(s + "\n");
+    }
 }
