@@ -1,12 +1,10 @@
 package me.hydos.unluac.decompile.expression;
 
-import me.hydos.unluac.decompile.Constant;
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.*;
 import me.hydos.unluac.bytecode.LBoolean;
 import me.hydos.unluac.bytecode.LNil;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class ConstantExpression extends Expression {
@@ -127,6 +125,10 @@ public class ConstantExpression extends Expression {
         return !constant.isString() || constant.asName().length() <= 10;
     }
 
+
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {}
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -138,5 +140,14 @@ public class ConstantExpression extends Expression {
     @Override
     public int hashCode() {
         return Objects.hash(constant, index);
+    }
+
+    @Override
+    public String toString() {
+        try {
+            return "ConstantExpression{" + "constant=" + DecompilerDebugger.print(null, (decompiler, output) -> constant.print(decompiler, output, false)) + '}';
+        } catch (Exception e) {
+            return "ConstantExpression{constant=UNRESOLVABLE}";
+        }
     }
 }

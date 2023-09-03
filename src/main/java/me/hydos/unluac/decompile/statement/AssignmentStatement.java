@@ -1,36 +1,38 @@
 package me.hydos.unluac.decompile.statement;
 
-import me.hydos.unluac.decompile.Declaration;
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.expression.Expression;
+import me.hydos.unluac.decompile.expression.LocalVariable;
 import me.hydos.unluac.decompile.expression.TableLiteral;
 import me.hydos.unluac.decompile.target.Target;
+import me.hydos.unluac.decompile.target.VariableTarget;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 public class AssignmentStatement extends Statement {
 
-    public final ArrayList<Target> targets = new ArrayList<>(5);
-    public final ArrayList<Expression> values = new ArrayList<>(5);
-    public final ArrayList<Integer> lines = new ArrayList<>(5);
+    public final ArrayList<Target> targets = new ArrayList<>(1);
+    public final ArrayList<Expression> values = new ArrayList<>(1);
+    public final ArrayList<Integer> lines = new ArrayList<>(1);
 
-    private boolean allnil = true;
+    private boolean allNil = true;
     public boolean declare = false;
     private int declareStart = 0;
 
     public AssignmentStatement() {
-
     }
 
     public AssignmentStatement(Target target, Expression value, int line) {
         targets.add(target);
         values.add(value);
         lines.add(line);
-        allnil = value.isNil();
+        allNil = value.isNil();
     }
 
     public Target getFirstTarget() {
@@ -53,7 +55,7 @@ public class AssignmentStatement extends Statement {
         return lines.get(0);
     }
 
-    public boolean assignsTarget(Declaration decl) {
+    public boolean assignsTarget(Local decl) {
         for (var target : targets) {
             if (target.isDeclaration(decl)) {
                 return true;
@@ -66,7 +68,7 @@ public class AssignmentStatement extends Statement {
         targets.add(0, target);
         values.add(0, value);
         lines.add(0, line);
-        allnil = allnil && value.isNil();
+        allNil = allNil && value.isNil();
     }
 
     public void addLast(Target target, Expression value, int line) {
@@ -79,7 +81,7 @@ public class AssignmentStatement extends Statement {
         targets.add(target);
         values.add(value);
         lines.add(line);
-        allnil = allnil && value.isNil();
+        allNil = allNil && value.isNil();
     }
 
     public Expression getValue(int target) {
@@ -106,7 +108,7 @@ public class AssignmentStatement extends Statement {
         throw new IllegalStateException();
     }
 
-    public boolean assignListEquals(List<Declaration> decls) {
+    public boolean assignListEquals(List<Local> decls) {
         if (decls.size() != targets.size()) return false;
         for (var target : targets) {
             var found = false;
@@ -122,35 +124,15 @@ public class AssignmentStatement extends Statement {
     }
 
     public void declare(int declareStart) {
-        declare = true;
+        this.declare = true;
         this.declareStart = declareStart;
     }
 
-    public boolean isDeclaration() {
-        return declare;
-    }
-
-    public boolean assigns(Declaration decl) {
+    public boolean assigns(Local decl) {
         for (var target : targets) {
             if (target.isDeclaration(decl)) return true;
         }
         return false;
-    }
-
-    public boolean canDeclare(List<Declaration> locals) {
-        for (var target : targets) {
-            var isNewLocal = false;
-            for (var decl : locals) {
-                if (target.isDeclaration(decl)) {
-                    isNewLocal = true;
-                    break;
-                }
-            }
-            if (!isNewLocal) {
-                return false;
-            }
-        }
-        return true;
     }
 
     @Override
@@ -158,24 +140,24 @@ public class AssignmentStatement extends Statement {
         if (!targets.isEmpty()) {
             // You are defining a new class instance. Organise your code
             if (values.get(0) instanceof TableLiteral literal && literal.entries.isEmpty()) out.println();
-            if (declare) out.print("local ");
 
-            var functionSugar = false;
-            if (targets.size() == 1 && values.size() == 1 && values.get(0).isClosure() && targets.get(0).isFunctionName()) {
-                var closure = values.get(0);
-                // This check only works in Lua version 0x51
-                if (!declare || declareStart >= closure.closureUpvalueLine()) functionSugar = true;
-                if (targets.get(0).isLocal() && closure.isUpvalueOf(targets.get(0).getIndex())) functionSugar = true;
 
-                //if(closure.isUpvalueOf(targets.get(0).))
-            }
+            this.declare = targets.stream()
+                    .filter(target -> target instanceof VariableTarget)
+                    .map(target -> (VariableTarget) target)
+                    .anyMatch(target -> target.local.needsDeclaring && !d.currentState.definedLocals.contains(target.local));
+
+            if (declare)
+                out.print("local ");
+
+            var functionSugar = isFunctionSugar();
             if (!functionSugar) {
                 targets.get(0).print(d, out, declare);
                 for (var i = 1; i < targets.size(); i++) {
                     out.print(", ");
                     targets.get(i).print(d, out, declare);
                 }
-                if (!declare || !allnil) {
+                if (!declare || !allNil) {
                     out.print(" = ");
 
                     var expressions = new LinkedList<Expression>();
@@ -212,7 +194,25 @@ public class AssignmentStatement extends Statement {
                 out.print(" -- ");
                 out.print(comment);
             }
+
+            if (declare) targets.stream()
+                    .filter(target -> target instanceof VariableTarget)
+                    .map(target -> (VariableTarget) target)
+                    .forEach(variableTarget -> d.currentState.definedLocals.add(variableTarget.local));
         }
+    }
+
+    private boolean isFunctionSugar() {
+        var functionSugar = false;
+        if (targets.size() == 1 && values.size() == 1 && values.get(0).isClosure() && targets.get(0).isFunctionName()) {
+            var closure = values.get(0);
+            // This check only works in Lua version 0x51
+            if (!declare || declareStart >= closure.closureUpvalueLine()) functionSugar = true;
+            if (targets.get(0).isLocal() && closure.isUpvalueOf(targets.get(0).getIndex())) functionSugar = true;
+
+            //if(closure.isUpvalueOf(targets.get(0).))
+        }
+        return functionSugar;
     }
 
     @Override
@@ -231,4 +231,30 @@ public class AssignmentStatement extends Statement {
         return !declare && targets.get(0).beginsWithParen();
     }
 
+    @Override
+    public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
+        if (includeAssignments)
+            targets.stream()
+                    .filter(target -> target instanceof VariableTarget)
+                    .map(target -> (VariableTarget) target)
+                    .forEach(variableTarget -> localUsageMap.put(variableTarget.local, true));
+
+        values.forEach(expression -> {
+            if (!(expression instanceof LocalVariable))  // Most likely useless reassignment that will get inlined later
+                expression.fillUsageMap(localUsageMap, includeAssignments);
+        });
+    }
+
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        values.forEach(expression -> expression.remapLocals(localRemaps));
+
+        targets.stream()
+                .filter(target -> target instanceof VariableTarget)
+                .map(target -> (VariableTarget) target)
+                .forEach(variableTarget -> {
+                    var local = variableTarget.local;
+                    if (localRemaps.containsKey(local)) variableTarget.local = localRemaps.get(local);
+                });
+    }
 }

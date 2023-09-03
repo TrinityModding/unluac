@@ -13,7 +13,7 @@
 .lastlinedefined	0
 .numparams	0
 .is_vararg	1
-.maxstacksize	4
+.maxstacksize	5
 
 .upvalue	"_ENV"	0	true
 
@@ -41,7 +41,8 @@ closure       r2    f0
 move          r1    r2
 move          r2    r1
 geti          r3    r0     1
-call          r2     2     2
+geti          r4    r0     1
+call          r2     3     2
 move          r1    r2
 return        r2     1     1     0
 
@@ -49,29 +50,38 @@ return        r2     1     1     0
 
 .source	null
 .linedefined	11
-.lastlinedefined	16
-.numparams	1
+.lastlinedefined	21
+.numparams	2
 .is_vararg	0
-.maxstacksize	5
+.maxstacksize	8
 
 .upvalue	null	0	false
 
-.constant	k0	"print"
-.constant	k1	"This gets used twice"
-.constant	k2	L"This is a weird function, right? AnArray[1] = "
+.constant	k0	" and "
+.constant	k1	"print"
+.constant	k2	"This gets used twice "
+.constant	k3	L"This is a weird function, right? AnArray[1] = "
 
-gettabup      r1    u0    k0 ; k0 = "print"
-loadk         r2    k1 ; k1 = "This gets used twice"
-move          r3    r0
-concat        r2     2
-call          r1     2     1
-loadi         r1     0
-gettabup      r2    u0    k0 ; k0 = "print"
-loadk         r3    k2 ; k2 = L"This is a weird func" (truncated)
-move          r4    r0
-concat        r3     2
-call          r2     2     1
-loadi         r2     5
-return1       r2     2     0     0
-return0       r2     1     0     0
+move          r2    r0
+loadk         r3    k0 ; k0 = " and "
+move          r4    r1
+concat        r2     3
+gettabup      r3    u0    k1 ; k1 = "print"
+loadk         r4    k2 ; k2 = "This gets used twice" (truncated)
+move          r5    r2
+concat        r4     2
+call          r3     2     1
+loadi         r3     0
+loadi         r3     3
+loadi         r3    10
+loadi         r4     2
+move          r3    r4
+gettabup      r5    u0    k1 ; k1 = "print"
+loadk         r6    k3 ; k3 = L"This is a weird func" (truncated)
+move          r7    r0
+concat        r6     2
+call          r5     2     1
+loadi         r5     5
+return1       r5     2     0     0
+return0       r5     1     0     0
 

@@ -1,11 +1,13 @@
 package me.hydos.unluac.decompile.expression;
 
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Map;
 
 public class TableLiteral extends Expression {
 
@@ -172,4 +174,11 @@ public class TableLiteral extends Expression {
         }
     }
 
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        entries.forEach(entry -> {
+            entry.key.remapLocals(localRemaps);
+            entry.value.remapLocals(localRemaps);
+        });
+    }
 }

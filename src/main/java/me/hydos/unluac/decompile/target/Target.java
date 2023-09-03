@@ -1,6 +1,6 @@
 package me.hydos.unluac.decompile.target;
 
-import me.hydos.unluac.decompile.Declaration;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
@@ -13,7 +13,7 @@ abstract public class Target {
 
     abstract public void printMethod(Decompiler d, Output out);
 
-    public boolean isDeclaration(Declaration decl) {
+    public boolean isDeclaration(Local decl) {
         return false;
     }
 

@@ -75,7 +75,7 @@ public class Main {
                     }
                     var d = new Decompiler(lmain, null, -1);
                     var result = d.getResult();
-                    d.print(result, config.getOutput());
+                    d.writeResult(result, config.getOutput());
                 }
                 case DISASSEMBLE -> {
                     BFunction lmain = null;
@@ -153,7 +153,7 @@ public class Main {
         var d = new Decompiler(lmain, null, -1);
         var result = d.getResult();
         final var pout = new PrintStream(out);
-        d.print(result, new Output(new OutputProvider() {
+        d.writeResult(result, new Output(new OutputProvider() {
 
             @Override
             public void print(String s) {

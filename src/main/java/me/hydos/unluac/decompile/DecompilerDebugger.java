@@ -2,6 +2,9 @@ package me.hydos.unluac.decompile;
 
 import java.util.function.BiConsumer;
 
+/**
+ * Unused as I use it in evaluation to verify what I'm working with and how it looks
+ */
 public class DecompilerDebugger {
 
     public static String print(Decompiler decompiler, BiConsumer<Decompiler, Output> print) {

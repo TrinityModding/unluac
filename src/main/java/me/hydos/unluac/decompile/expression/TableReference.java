@@ -1,9 +1,11 @@
 package me.hydos.unluac.decompile.expression;
 
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class TableReference extends Expression {
@@ -89,5 +91,11 @@ public class TableReference extends Expression {
     @Override
     public int hashCode() {
         return Objects.hash(table, index);
+    }
+
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        table.remapLocals(localRemaps);
+        index.remapLocals(localRemaps);
     }
 }

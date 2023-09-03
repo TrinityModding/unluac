@@ -32,12 +32,12 @@ public class ControlFlowHandler {
         resolve_lines(state);
         initialize_blocks(state);
         find_fixed_blocks(state);
-        find_while_loops(state, d.declarations);
+        find_while_loops(state, d.locals);
         find_repeat_loops(state);
-        find_if_break(state, d.declarations);
+        find_if_break(state, d.locals);
         find_set_blocks(state);
-        find_pseudo_goto_statements(state, d.declarations);
-        find_do_blocks(state, d.declarations);
+        find_pseudo_goto_statements(state, d.locals);
+        find_do_blocks(state, d.locals);
         Collections.sort(state.blocks);
         return new Result(state);
     }
@@ -493,7 +493,7 @@ public class ControlFlowHandler {
         }
     }
 
-    private static void find_while_loops(State state, List<Declaration> declList) {
+    private static void find_while_loops(State state, List<Local> declList) {
         var blocks = state.blocks;
         var j = state.end_branch;
         while (j != null) {
@@ -640,7 +640,7 @@ public class ControlFlowHandler {
         }
     }
 
-    private static boolean splits_decl(int line, int begin, int end, List<Declaration> declList) {
+    private static boolean splits_decl(int line, int begin, int end, List<Local> declList) {
         for (var decl : declList) {
             if (decl.isSplitBy(line, begin, end)) {
                 return true;
@@ -732,7 +732,7 @@ public class ControlFlowHandler {
         remove_branch(state, b);
     }
 
-    private static boolean is_hanger_resolvable(State state, List<Declaration> declList, Branch hanging, Branch resolver) {
+    private static boolean is_hanger_resolvable(State state, List<Local> declList, Branch hanging, Branch resolver) {
         return hanging.targetSecond == resolver.targetFirst
                && enclosing_block(state, hanging.line) == enclosing_block(state, resolver.line)
                && !splits_decl(hanging.line, hanging.targetFirst, resolver.line, declList)
@@ -743,7 +743,7 @@ public class ControlFlowHandler {
         );
     }
 
-    private static boolean is_hanger_resolvable(State state, List<Declaration> declList, Branch hanging, Stack<Branch> resolvers) {
+    private static boolean is_hanger_resolvable(State state, List<Local> declList, Branch hanging, Stack<Branch> resolvers) {
         for (var i = 0; i < resolvers.size(); i++) {
             if (is_hanger_resolvable(state, declList, hanging, resolvers.peek(i))) {
                 return true;
@@ -759,13 +759,13 @@ public class ControlFlowHandler {
         if (if_block == null) throw new IllegalStateException();
     }
 
-    private static void resolve_hangers(State state, List<Declaration> declList, Stack<Branch> stack, Stack<Branch> hanging, Branch b) {
+    private static void resolve_hangers(State state, List<Local> declList, Stack<Branch> stack, Stack<Branch> hanging, Branch b) {
         while (!hanging.isEmpty() && is_hanger_resolvable(state, declList, hanging.peek(), b)) {
             resolve_hanger(state, stack, hanging.pop(), b);
         }
     }
 
-    private static void find_if_break(State state, List<Declaration> declList) {
+    private static void find_if_break(State state, List<Local> declList) {
         var stack = new Stack<Branch>();
         var hanging = new Stack<Branch>();
         var elseStack = new Stack<ElseEndBlock>();
@@ -1103,7 +1103,7 @@ public class ControlFlowHandler {
         return enclosing;
     }
 
-    private static void find_pseudo_goto_statements(State state, List<Declaration> declList) {
+    private static void find_pseudo_goto_statements(State state, List<Local> declList) {
         var b = state.begin_branch;
         while (b != null) {
             if (b.type == Branch.Type.jump && b.targetFirst > b.line) {
@@ -1192,7 +1192,7 @@ public class ControlFlowHandler {
         }
     }
 
-    private static void find_do_blocks(State state, List<Declaration> declList) {
+    private static void find_do_blocks(State state, List<Local> declList) {
         List<Block> newBlocks = new ArrayList<>();
         for (var block : state.blocks) {
             if (block.hasCloseLine() && block.getCloseLine() >= 1) {
@@ -1201,7 +1201,7 @@ public class ControlFlowHandler {
                 if ((enclosing == block || enclosing.contains(block)) && is_close(state, closeLine)) {
                     var register = get_close_value(state, closeLine);
                     var close = true;
-                    Declaration closeDecl = null;
+                    Local closeDecl = null;
                     for (var decl : declList) {
                         if (!decl.forLoop && !decl.forLoopExplicit && block.contains(decl.begin)) {
                             if (decl.register < register) {

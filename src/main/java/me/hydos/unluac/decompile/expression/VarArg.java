@@ -1,14 +1,17 @@
 package me.hydos.unluac.decompile.expression;
 
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 
-public class Vararg extends Expression {
+import java.util.Map;
+
+public class VarArg extends Expression {
 
     private final boolean multiple;
 
-    public Vararg(boolean multiple) {
+    public VarArg(boolean multiple) {
         super(PRECEDENCE_ATOMIC);
         this.multiple = multiple;
     }
@@ -39,4 +42,6 @@ public class Vararg extends Expression {
         return multiple;
     }
 
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {}
 }

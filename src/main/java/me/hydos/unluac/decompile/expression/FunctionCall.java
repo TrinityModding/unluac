@@ -1,13 +1,11 @@
 package me.hydos.unluac.decompile.expression;
 
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Objects;
+import java.util.*;
 
 public class FunctionCall extends Expression {
 
@@ -62,14 +60,16 @@ public class FunctionCall extends Expression {
     }
 
     @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        function.remapLocals(localRemaps);
+        Arrays.stream(arguments).forEach(expression -> expression.remapLocals(localRemaps));
+    }
+
+    @Override
     public void printMultiple(Decompiler d, Output out) {
-        if (!multiple) {
-            out.print("(");
-        }
+        if (!multiple) out.print("(");
         print(d, out);
-        if (!multiple) {
-            out.print(")");
-        }
+        if (!multiple) out.print(")");
     }
 
     @Override

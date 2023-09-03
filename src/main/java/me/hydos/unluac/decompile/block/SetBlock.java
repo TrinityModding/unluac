@@ -1,22 +1,23 @@
 package me.hydos.unluac.decompile.block;
 
+import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.decompile.*;
 import me.hydos.unluac.decompile.condition.Condition;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.operation.Operation;
 import me.hydos.unluac.decompile.statement.AssignmentStatement;
 import me.hydos.unluac.decompile.statement.Statement;
-import me.hydos.unluac.bytecode.BFunction;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class SetBlock extends Block {
 
     public final int target;
     public final Condition cond;
     private final Registers r;
-    private final boolean finalize = false;
+    public final boolean finalize = false;
     private AssignmentStatement assign;
 
     public SetBlock(BFunction function, Condition cond, int target, int begin, int end, Registers r) {
@@ -133,4 +134,13 @@ public class SetBlock extends Block {
         return cond.asExpression(r);
     }
 
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        if (assign != null) assign.remapLocals(localRemaps);
+    }
+
+    @Override
+    public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
+        if (assign != null) assign.fillUsageMap(localUsageMap, includeAssignments);
+    }
 }

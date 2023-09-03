@@ -6,13 +6,15 @@ import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.bytecode.BFunction;
 
+import java.util.Map;
+
 public class IfThenElseBlock extends ContainerBlock {
 
-    private final Condition cond;
-    private final int elseTarget;
+    public final Condition cond;
+    public final int elseTarget;
     public ElseEndBlock partner;
 
-    private Expression condexpr;
+    public Expression condexpr;
 
     public IfThenElseBlock(BFunction function, Condition cond, int begin, int end, int elseTarget, CloseType closeType, int closeLine) {
         super(function, begin, end, closeType, closeLine, -1);
@@ -95,7 +97,6 @@ public class IfThenElseBlock extends ContainerBlock {
             out.println("else");
             out.println("end");
         }
-
     }
 
     @Override
@@ -103,4 +104,8 @@ public class IfThenElseBlock extends ContainerBlock {
         return true;
     }
 
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        condexpr.remapLocals(localRemaps);
+    }
 }

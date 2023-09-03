@@ -1,8 +1,11 @@
 package me.hydos.unluac.decompile.expression;
 
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
+
+import java.util.Map;
 
 public class GlobalExpression extends Expression {
 
@@ -41,4 +44,8 @@ public class GlobalExpression extends Expression {
         return true;
     }
 
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        name.remapLocals(localRemaps);
+    }
 }

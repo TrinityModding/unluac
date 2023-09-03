@@ -1,17 +1,18 @@
 package me.hydos.unluac.decompile.expression;
 
-import me.hydos.unluac.decompile.Declaration;
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class LocalVariable extends Expression {
 
-    public final Declaration decl;
+    public Local decl;
 
-    public LocalVariable(Declaration decl) {
+    public LocalVariable(Local decl) {
         super(PRECEDENCE_ATOMIC);
         this.decl = decl;
     }
@@ -39,6 +40,16 @@ public class LocalVariable extends Expression {
     @Override
     public boolean isBrief() {
         return true;
+    }
+
+    @Override
+    public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
+        localUsageMap.put(decl, true);
+    }
+
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        if (localRemaps.containsKey(decl)) this.decl = localRemaps.get(decl);
     }
 
     @Override

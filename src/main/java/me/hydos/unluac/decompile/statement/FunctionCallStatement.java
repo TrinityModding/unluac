@@ -1,9 +1,12 @@
 package me.hydos.unluac.decompile.statement;
 
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.expression.FunctionCall;
+
+import java.util.Map;
 
 public class FunctionCallStatement extends Statement {
 
@@ -29,4 +32,13 @@ public class FunctionCallStatement extends Statement {
         return call.beginsWithParen();
     }
 
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        call.remapLocals(localRemaps);
+    }
+
+    @Override
+    public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
+        call.fillUsageMap(localUsageMap, includeAssignments);
+    }
 }

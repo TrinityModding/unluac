@@ -14,7 +14,7 @@ public class VariableFinder {
         return d.bytecode.header.extractor.is_k(value);
     }
 
-    public static Declaration[] process(Decompiler d, int args, int registers) {
+    public static Local[] process(Decompiler d, int args, int registers) {
         var code = d.reader;
         var states = new RegisterStates(registers, code.length());
         var skip = new boolean[code.length()];
@@ -202,7 +202,7 @@ public class VariableFinder {
       }
     }
     //*/
-        List<Declaration> declList = new ArrayList<>(registers);
+        List<Local> declList = new ArrayList<>(registers);
         for (var register = 0; register < registers; register++) {
             var id = "L";
             var local = false;
@@ -267,7 +267,7 @@ public class VariableFinder {
                 } else {
                     name = id + register + "_" + lc++;
                 }
-                var decl = new Declaration(name, start, code.length() + d.bytecodeVersion.outerblockscopeadjustment.get());
+                var decl = new Local(name, start, code.length() + d.bytecodeVersion.outerblockscopeadjustment.get());
                 decl.register = register;
                 declList.add(decl);
             }
@@ -277,7 +277,7 @@ public class VariableFinder {
     for(Declaration decl : declList) {
       System.out.println("decl: " + decl.name + " " + decl.begin + " " + decl.end);
     }*/
-        return declList.toArray(new Declaration[0]);
+        return declList.toArray(new Local[0]);
     }
 
     static class RegisterState {

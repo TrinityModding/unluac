@@ -1,11 +1,9 @@
 package me.hydos.unluac.decompile.statement;
 
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.FunctionQuery;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.*;
 
 import java.util.List;
+import java.util.Map;
 
 abstract public class Statement {
 
@@ -16,21 +14,13 @@ abstract public class Statement {
      * informs the last statement that it is last in a block.
      */
     public static void printSequence(Decompiler d, Output out, List<Statement> stmts) {
-        var n = stmts.size();
-        for (var i = 0; i < n; i++) {
-            var last = (i + 1 == n);
+        for (var i = 0; i < stmts.size(); i++) {
+            var last = (i + 1 == stmts.size());
             var stmt = stmts.get(i);
-            if (stmt.beginsWithParen() && (i > 0 || d.bytecodeVersion.allowpreceedingsemicolon.get())) {
-                out.print(";");
-            }
-            if (last) {
-                stmt.printTail(d, out);
-            } else {
-                stmt.print(d, out);
-            }
-            if (!stmt.suppressNewline()) {
-                out.println();
-            }
+            if (stmt.beginsWithParen() && (i > 0 || d.bytecodeVersion.allowpreceedingsemicolon.get())) out.print(";");
+            if (last) stmt.printTail(d, out);
+            else stmt.print(d, out);
+            if (!stmt.suppressNewline()) out.println();
         }
     }
 
@@ -58,4 +48,7 @@ abstract public class Statement {
         return false;
     }
 
+    public abstract void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments);
+
+    public abstract void remapLocals(Map<Local, Local> localRemaps);
 }

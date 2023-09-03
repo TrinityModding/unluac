@@ -1,12 +1,14 @@
 package me.hydos.unluac.decompile.block;
 
 import me.hydos.unluac.decompile.CloseType;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.bytecode.BFunction;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 abstract public class ContainerBlock extends Block {
 
@@ -69,4 +71,13 @@ abstract public class ContainerBlock extends Block {
         return statements.isEmpty();
     }
 
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        statements.forEach(statement -> statement.remapLocals(localRemaps));
+    }
+
+    @Override
+    public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
+        statements.forEach(statement -> statement.fillUsageMap(localUsageMap, includeAssignments));
+    }
 }

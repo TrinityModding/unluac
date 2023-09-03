@@ -1,20 +1,23 @@
 package me.hydos.unluac.decompile;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import me.hydos.unluac.Version;
 import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.decompile.block.Block;
-import me.hydos.unluac.decompile.block.ContainerBlock;
 import me.hydos.unluac.decompile.block.DoEndBlock;
 import me.hydos.unluac.decompile.block.OuterBlock;
 import me.hydos.unluac.decompile.expression.*;
 import me.hydos.unluac.decompile.operation.*;
-import me.hydos.unluac.decompile.statement.*;
+import me.hydos.unluac.decompile.statement.AssignmentStatement;
+import me.hydos.unluac.decompile.statement.Label;
+import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.decompile.target.*;
 import me.hydos.unluac.util.Stack;
 
 import java.util.*;
 
 public class Decompiler {
+
     public final BFunction bytecode;
     public final BytecodeReader reader;
     public final Version bytecodeVersion;
@@ -24,114 +27,136 @@ public class Decompiler {
     public final BFunction[] functions;
     public final int paramCount;
     public final int vararg;
-    public final List<Declaration> declarations;
-    public final List<Declaration> deadDeclarations;
+    public final List<Local> locals;
+    public final List<Local> deadLocals;
     private final FunctionQuery bytecodeQuery;
+    public final boolean isUpper;
+    public State currentState;
 
-    public Decompiler(BFunction target, List<Declaration> parentDeclarations, int startLine) {
+    public Decompiler(BFunction target, List<Local> parentLocals, int startLine) {
+        this.isUpper = parentLocals == null;
         this.bytecode = target;
         this.reader = new BytecodeReader(bytecode);
         this.bytecodeVersion = bytecode.header.version;
         this.bytecodeCodeLength = bytecode.code.length;
         this.registers = bytecode.maximumStackSize;
         if (!target.stripped) System.out.println("Warning: This decompiler ignores debug info.");
-        this.upValues = new Upvalues(bytecode, parentDeclarations, startLine);
+        this.upValues = new Upvalues(bytecode, parentLocals, startLine);
         this.functions = bytecode.functions;
         this.paramCount = bytecode.paramCount;
         this.vararg = bytecode.vararg;
-        this.declarations = readDecls();
-        this.deadDeclarations = new ArrayList<>();
+        this.locals = readDecls();
+        this.deadLocals = new ArrayList<>();
         this.bytecodeQuery = new FunctionQuery(bytecode);
     }
 
-    private List<Declaration> readDecls() {
-        var decls = new ArrayList<Declaration>();
+    private List<Local> readDecls() {
+        var decls = new ArrayList<Local>();
         var scopeEnd = bytecodeCodeLength + bytecodeVersion.outerblockscopeadjustment.get();
         var normalDeclLength = Math.min(bytecode.paramCount, bytecode.maximumStackSize);
 
         for (var i = 0; i < normalDeclLength; i++)
-            decls.add(new Declaration("A" + i + "_" + bytecode.depth, 0, scopeEnd));
+            decls.add(new Local("A" + i + "_" + bytecode.depth, 0, scopeEnd));
 
         if (bytecodeVersion.varargtype.get() != Version.VarArgType.ELLIPSIS && (bytecode.vararg & 1) != 0 && normalDeclLength < bytecode.maximumStackSize)
-            decls.add(new Declaration("arg", 0, scopeEnd));
+            decls.add(new Local("arg", 0, scopeEnd));
 
         for (var i = normalDeclLength; i < bytecode.maximumStackSize; i++)
-            decls.add(new Declaration("L" + i + "_" + bytecode.depth, 0, scopeEnd));
+            decls.add(new Local("L" + i + "_" + bytecode.depth, 0, scopeEnd));
 
         return decls;
     }
 
     public static class State {
+        // 1st pass state
+        public List<Block> blocks;
         private Registers registers;
         private boolean[] skip;
         private boolean[] labels;
         private Block outer;
+
+        // 2nd pass state
+        public final List<Local> definedLocals = new ArrayList<>();
+        public final Map<Local, Boolean> localUsed = new Object2ObjectArrayMap<>();
+        public final Map<Local, Local> localRemaps = new Object2ObjectArrayMap<>();
     }
 
     public State getResult() {
         var result = new State();
-        result.registers = new Registers(registers, bytecodeCodeLength, declarations, bytecodeQuery);
+        result.registers = new Registers(registers, bytecodeCodeLength, locals, bytecodeQuery);
         var flowResult = ControlFlowHandler.process(this, result.registers);
-        var blocks = flowResult.blocks;
-        result.outer = blocks.get(0);
+        result.blocks = flowResult.blocks;
+        result.outer = result.blocks.get(0);
         result.labels = flowResult.labels;
-        processSequence(result, blocks, reader.length);
-        for (var block : blocks) block.resolve(result.registers);
+        processSequence(result, result.blocks, reader.length);
+        for (var block : result.blocks) block.resolve(result.registers);
         handleUnusedConstants(result.outer);
-        highLevelWalkFix(blocks);
         return result;
     }
 
     /**
      * Walk over the generated pseudo-lua to fix higher level mistakes which require more context. Very expensive. Every add/remove can greatly affect compile time.
      */
-    private void highLevelWalkFix(List<Block> blocks) {
-        for (var block : blocks) {
-            if (block instanceof ContainerBlock containerBlock) {
-                System.out.println("Fixing Container Block");
+    private void highLevelWalkFix(State state) {
+        for (var block : state.blocks) {
+            if (block.hasStatements()) {
                 var originalCode = block.getStatements();
-                containerBlock.statements = PatternFixer.rewriteStatements(this, originalCode);
+                PatternFixer.rewriteStatements(this, state, originalCode);
             }
         }
     }
 
-    public void print(State state, Output out) {
-        handleInitialDeclares(out);
+    public void writeResult(State state, Output out) {
+        this.currentState = state;
+        highLevelWalkFix(state);
+
+        handleInitialLocals(state, out);
         state.outer.print(this, out);
     }
 
-    private void handleInitialDeclares(Output out) {
-        List<Declaration> initdecls = new ArrayList<>(declarations.size());
-        var initdeclcount = paramCount;
+    private void handleInitialLocals(State state, Output out) {
+        for (var block : state.blocks) {
+            if (block.hasStatements()) {
+                var code = block.getStatements();
+
+                // for defining locals cleanly
+                var localEverUsed = new Object2ObjectArrayMap<Local, Boolean>();
+                code.forEach(statement -> statement.fillUsageMap(localEverUsed, true));
+                var initLocals = getInitialLocals();
+                for (var entry : localEverUsed.entrySet()) if (entry.getValue()) initLocals.remove(entry.getKey());
+                if (!initLocals.isEmpty()) {
+                    out.print("local ");
+                    out.print(initLocals.get(0).name);
+                    for (var i = 1; i < initLocals.size(); i++) {
+                        out.print(", ");
+                        out.print(initLocals.get(i).name);
+                    }
+                    out.println();
+                }
+            }
+        }
+    }
+
+    public List<Local> getInitialLocals() {
+        var initLocals = new ArrayList<Local>(locals.size());
+        var initLocalCount = paramCount;
+
         switch (bytecodeVersion.varargtype.get()) {
-            case ARG, HYBRID -> initdeclcount += vararg & 1;
-            case ELLIPSIS -> {
-            }
+            case ARG, HYBRID -> initLocalCount += vararg & 1;
         }
 
-        for (var i = initdeclcount; i < declarations.size(); i++) {
-            if (declarations.get(i).begin == 0) {
-                initdecls.add(declarations.get(i));
-            }
+        for (var i = initLocalCount; i < locals.size(); i++) {
+            if (locals.get(i).begin == 0) initLocals.add(locals.get(i));
         }
 
-        initdecls.removeAll(deadDeclarations);
-
-        if (!initdecls.isEmpty()) {
-            out.print("local ");
-            out.print(initdecls.get(0).name);
-            for (var i = 1; i < initdecls.size(); i++) {
-                out.print(", ");
-                out.print(initdecls.get(i).name);
-            }
-            out.println();
-        }
+        initLocals.removeAll(deadLocals);
+        return initLocals;
     }
 
     public boolean hasStatement(int begin, int end) {
         if (begin <= end) {
             var state = new State();
-            state.registers = new Registers(registers, bytecodeCodeLength, declarations, bytecodeQuery);
+            state.registers = new Registers(registers, bytecodeCodeLength, locals, bytecodeQuery);
             state.outer = new OuterBlock(bytecode, reader.length);
             var scoped = new DoEndBlock(bytecode, begin, end + 1);
             state.labels = new boolean[reader.length + 1];
@@ -167,8 +192,8 @@ public class Decompiler {
         while (true) {
             var nextline = line;
             List<Operation> operations = null;
-            List<Declaration> prevLocals = null;
-            List<Declaration> newLocals = null;
+            List<Local> prevLocals = null;
+            List<Local> newLocals = null;
 
             // Handle container blocks
             if (blockStack.peek().end <= line) {
@@ -768,14 +793,14 @@ public class Decompiler {
                 var multiple = (B != 2);
                 if (B == 1) throw new IllegalStateException();
                 if (B == 0) B = registers - A + 1;
-                Expression value = new Vararg(multiple);
+                Expression value = new VarArg(multiple);
                 operations.add(new MultipleRegisterSet(line, A, A + B - 2, value));
             }
             case VARARG54 -> {
                 var multiple = (C != 2);
                 if (C == 1) throw new IllegalStateException();
                 if (C == 0) C = registers - A + 1;
-                Expression value = new Vararg(multiple);
+                Expression value = new VarArg(multiple);
                 operations.add(new MultipleRegisterSet(line, A, A + C - 2, value));
             }
             case EXTRAARG, EXTRABYTE -> {

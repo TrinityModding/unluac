@@ -1,8 +1,11 @@
 package me.hydos.unluac.decompile.expression;
 
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
+
+import java.util.Map;
 
 public class BinaryExpression extends Expression {
 
@@ -72,4 +75,9 @@ public class BinaryExpression extends Expression {
         return precedence > right.precedence || (precedence == right.precedence && associativity == ASSOCIATIVITY_LEFT);
     }
 
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        left.remapLocals(localRemaps);
+        right.remapLocals(localRemaps);
+    }
 }

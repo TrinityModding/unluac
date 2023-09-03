@@ -67,7 +67,5 @@ public interface Condition {
         default -> throw new IllegalStateException();
       };
     }
-
   }
-
 }

@@ -31,6 +31,15 @@ abstract public class Block extends Statement implements Comparable<Block> {
 
     public abstract void addStatement(Statement statement);
 
+    public boolean hasStatements() {
+        try {
+            getStatements();
+            return true;
+        } catch (IllegalStateException e) {
+            return false;
+        }
+    }
+
     public List<Statement> getStatements() {
         return Collections.emptyList();
     }

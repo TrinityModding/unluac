@@ -1,11 +1,13 @@
 package me.hydos.unluac.decompile.expression;
 
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.target.Target;
 
 import java.util.List;
+import java.util.Map;
 
 abstract public class Expression {
     public static final int PRECEDENCE_OR = 1;
@@ -93,9 +95,13 @@ abstract public class Expression {
         right.print(d, out);
     }
 
-    abstract public void walk(Walker w);
+    public abstract void walk(Walker w);
 
-    abstract public void print(Decompiler d, Output out);
+    public abstract void print(Decompiler d, Output out);
+
+    public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {}
+
+    public abstract void remapLocals(Map<Local, Local> localRemaps);
 
     /**
      * Prints the expression in a context where it is surrounded by braces.
@@ -278,8 +284,7 @@ abstract public class Expression {
         UNM("-"),
         NOT("not "),
         LEN("#"),
-        BNOT("~"),
-        ;
+        BNOT("~");
 
         public final String op;
 
@@ -287,5 +292,4 @@ abstract public class Expression {
             this.op = op;
         }
     }
-
 }

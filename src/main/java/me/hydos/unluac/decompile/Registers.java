@@ -15,20 +15,20 @@ public class Registers {
 
     public final int registers;
     public final int length;
-    private final Declaration[][] decls;
+    private final Local[][] decls;
     private final FunctionQuery f;
     private final Expression[][] values;
     private final int[][] updated;
 
     @Deprecated
-    public Registers(int registers, int length, Declaration[] declList, FunctionQuery f, boolean isNoDebug) {
+    public Registers(int registers, int length, Local[] declList, FunctionQuery f, boolean isNoDebug) {
         this(registers, length, Arrays.stream(declList).toList(), f);
     }
 
-    public Registers(int registers, int length, List<Declaration> declList, FunctionQuery f) {
+    public Registers(int registers, int length, List<Local> declList, FunctionQuery f) {
         this.registers = registers;
         this.length = length;
-        decls = new Declaration[registers][length + 1];
+        decls = new Local[registers][length + 1];
 
         for (var decl : declList) {
             var register = 0;
@@ -64,13 +64,13 @@ public class Registers {
         return decl != null && decl.begin == line && !decl.forLoop && !decl.forLoopExplicit;
     }
 
-    public List<Declaration> getNewLocals(int line) {
+    public List<Local> getNewLocals(int line) {
         return getNewLocals(line, 0);
     }
 
-    public List<Declaration> getNewLocals(int line, int first) {
+    public List<Local> getNewLocals(int line, int first) {
         first = Math.max(0, first);
-        var locals = new ArrayList<Declaration>(Math.max(registers - first, 0));
+        var locals = new ArrayList<Local>(Math.max(registers - first, 0));
 
         for (var register = first; register < registers; register++) {
             if (isNewLocal(register, line)) {
@@ -80,7 +80,7 @@ public class Registers {
         return locals;
     }
 
-    public Declaration getDeclaration(int register, int line) {
+    public Local getDeclaration(int register, int line) {
         return decls[register][line];
     }
 
@@ -133,7 +133,7 @@ public class Registers {
     public void setInternalLoopVariable(int register, int begin, int end) {
         var decl = getDeclaration(register, begin);
         if (decl == null) {
-            decl = new Declaration("_FOR_", begin, end);
+            decl = new Local("_FOR_", begin, end);
             decl.register = register;
             newDeclaration(decl, register, begin, end);
         }
@@ -144,7 +144,7 @@ public class Registers {
     public void setExplicitLoopVariable(int register, int begin, int end) {
         var decl = getDeclaration(register, begin);
         if (decl == null) {
-            decl = new Declaration("_FORV_" + register + "_", begin, end);
+            decl = new Local("_FORV_" + register + "_", begin, end);
             decl.register = register;
             newDeclaration(decl, register, begin, end);
         }
@@ -152,7 +152,7 @@ public class Registers {
         decl.forLoopExplicit = true;
     }
 
-    private void newDeclaration(Declaration decl, int register, int begin, int end) {
+    private void newDeclaration(Local decl, int register, int begin, int end) {
         for (var line = begin; line <= end; line++) {
             decls[register][line] = decl;
         }

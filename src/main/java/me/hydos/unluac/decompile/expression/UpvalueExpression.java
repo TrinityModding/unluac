@@ -1,14 +1,16 @@
 package me.hydos.unluac.decompile.expression;
 
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class UpvalueExpression extends Expression {
 
-    private final String name;
+    private String name;
 
     public UpvalueExpression(String name) {
         super(PRECEDENCE_ATOMIC);
@@ -56,5 +58,12 @@ public class UpvalueExpression extends Expression {
     @Override
     public int hashCode() {
         return Objects.hash(name);
+    }
+
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        for (var entry : localRemaps.entrySet()) {
+            if (entry.getKey().name.equals(name)) this.name = entry.getValue().name;
+        }
     }
 }

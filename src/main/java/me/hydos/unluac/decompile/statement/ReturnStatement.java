@@ -1,12 +1,14 @@
 package me.hydos.unluac.decompile.statement;
 
 import me.hydos.unluac.decompile.Decompiler;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
 import me.hydos.unluac.decompile.expression.Expression;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Map;
 
 public class ReturnStatement extends Statement {
 
@@ -50,4 +52,13 @@ public class ReturnStatement extends Statement {
         }
     }
 
+    @Override
+    public void remapLocals(Map<Local, Local> localRemaps) {
+        for (var value : values) value.remapLocals(localRemaps);
+    }
+
+    @Override
+    public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
+        for (var value : values) value.fillUsageMap(localUsageMap, includeAssignments);
+    }
 }

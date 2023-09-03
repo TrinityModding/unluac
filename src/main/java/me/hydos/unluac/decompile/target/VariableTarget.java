@@ -1,6 +1,6 @@
 package me.hydos.unluac.decompile.target;
 
-import me.hydos.unluac.decompile.Declaration;
+import me.hydos.unluac.decompile.Local;
 import me.hydos.unluac.decompile.Decompiler;
 import me.hydos.unluac.decompile.Output;
 import me.hydos.unluac.decompile.Walker;
@@ -9,10 +9,10 @@ import java.util.Objects;
 
 public class VariableTarget extends Target {
 
-    public final Declaration decl;
+    public Local local;
 
-    public VariableTarget(Declaration decl) {
-        this.decl = decl;
+    public VariableTarget(Local local) {
+        this.local = local;
     }
 
     @Override
@@ -21,8 +21,8 @@ public class VariableTarget extends Target {
 
     @Override
     public void print(Decompiler d, Output out, boolean declare) {
-        out.print(decl.name);
-        if (declare && decl.tbc) {
+        out.print(local.name);
+        if (declare && local.tbc) {
             out.print(" <close>");
         }
     }
@@ -33,8 +33,8 @@ public class VariableTarget extends Target {
     }
 
     @Override
-    public boolean isDeclaration(Declaration decl) {
-        return this.decl == decl;
+    public boolean isDeclaration(Local decl) {
+        return this.local == decl;
     }
 
     @Override
@@ -44,7 +44,7 @@ public class VariableTarget extends Target {
 
     @Override
     public int getIndex() {
-        return decl.register;
+        return local.register;
     }
 
     @Override
@@ -52,16 +52,16 @@ public class VariableTarget extends Target {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         var that = (VariableTarget) o;
-        return Objects.equals(decl, that.decl);
+        return Objects.equals(local, that.local);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(decl);
+        return Objects.hash(local);
     }
 
     @Override
     public String toString() {
-        return "VariableTarget{" + "local=" + decl.name + '}';
+        return "VariableTarget{" + "local=" + local.name + '}';
     }
 }
