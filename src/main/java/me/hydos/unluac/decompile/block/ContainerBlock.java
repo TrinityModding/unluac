@@ -1,8 +1,8 @@
 package me.hydos.unluac.decompile.block;
 
-import me.hydos.unluac.decompile.CloseType;
-import me.hydos.unluac.decompile.Local;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.core.CloseType;
+import me.hydos.unluac.decompile.core.Local;
+import me.hydos.unluac.decompile.core.Walker;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.bytecode.BFunction;
 
@@ -72,8 +72,8 @@ abstract public class ContainerBlock extends Block {
     }
 
     @Override
-    public void remapLocals(Map<Local, Local> localRemaps) {
-        statements.forEach(statement -> statement.remapLocals(localRemaps));
+    public void remapLocals(Map<Local, Local> localRemaps, Map<Local, Local> lastLocalRemaps) {
+        statements.forEach(statement -> statement.remapLocals(localRemaps, lastLocalRemaps));
     }
 
     @Override

@@ -3,10 +3,10 @@ package me.hydos.unluac;
 import me.hydos.unluac.Configuration.Mode;
 import me.hydos.unluac.assemble.Assembler;
 import me.hydos.unluac.assemble.AssemblerException;
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Disassembler;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.OutputProvider;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Disassembler;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.OutputProvider;
 import me.hydos.unluac.bytecode.BHeader;
 import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.util.FileUtils;
@@ -73,7 +73,7 @@ public class Main {
                     } catch (IOException e) {
                         error(e.getMessage(), false);
                     }
-                    var d = new Decompiler(lmain, null, -1);
+                    var d = new Decompiler(lmain, null, -1, null);
                     var result = d.getResult();
                     d.writeResult(result, config.getOutput());
                 }
@@ -150,7 +150,7 @@ public class Main {
 
     public static void decompile(String in, String out, Configuration config) throws IOException {
         var lmain = file_to_function(in, config);
-        var d = new Decompiler(lmain, null, -1);
+        var d = new Decompiler(lmain, null, -1, null);
         var result = d.getResult();
         final var pout = new PrintStream(out);
         d.writeResult(result, new Output(new OutputProvider() {

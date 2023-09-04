@@ -1,10 +1,10 @@
 package me.hydos.unluac.decompile.block;
 
 import me.hydos.unluac.Version;
-import me.hydos.unluac.decompile.CloseType;
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.FunctionQuery;
-import me.hydos.unluac.decompile.Output;
+import me.hydos.unluac.decompile.core.CloseType;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.FunctionQuery;
+import me.hydos.unluac.decompile.core.Output;
 import me.hydos.unluac.decompile.expression.ConstantExpression;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.bytecode.BFunction;

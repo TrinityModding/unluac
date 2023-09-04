@@ -8,7 +8,16 @@ AnArray[5] = "Metal"
 AnArray[6] = "Cool"
 
 local SomethingElse = 2
-SomethingElse = function(value, value2)
+SomethingElse = function(value, value2, value3)
+    while value3 < 10 do
+        print("x is less than 10")
+        value3 = value3 + 1
+    end
+
+    if value3 < 32767 then
+        print("value3 < 32767")
+    end
+
     local combined = value .. " and " .. value2
     print("This gets used twice " .. combined)
     local i = 0;
@@ -19,4 +28,4 @@ SomethingElse = function(value, value2)
     print("This is a weird function, right? AnArray[1] = " .. value)
     return 5
 end
-SomethingElse = SomethingElse(AnArray[1], AnArray[1])
+SomethingElse = SomethingElse(AnArray[1], AnArray[1], 7)

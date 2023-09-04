@@ -1,6 +1,6 @@
 package me.hydos.unluac.decompile.operation;
 
-import me.hydos.unluac.decompile.Registers;
+import me.hydos.unluac.decompile.core.Registers;
 import me.hydos.unluac.decompile.block.Block;
 import me.hydos.unluac.decompile.expression.FunctionCall;
 import me.hydos.unluac.decompile.statement.FunctionCallStatement;
@@ -21,5 +21,4 @@ public class CallOperation extends Operation {
     public List<Statement> process(Registers r, Block block) {
         return List.of(new FunctionCallStatement(call));
     }
-
 }

@@ -1,12 +1,10 @@
 package me.hydos.unluac.decompile.statement;
 
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Local;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
-import me.hydos.unluac.decompile.expression.Expression;
-import me.hydos.unluac.decompile.expression.LocalVariable;
-import me.hydos.unluac.decompile.expression.TableLiteral;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Local;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.Walker;
+import me.hydos.unluac.decompile.expression.*;
 import me.hydos.unluac.decompile.target.Target;
 import me.hydos.unluac.decompile.target.VariableTarget;
 
@@ -142,13 +140,9 @@ public class AssignmentStatement extends Statement {
             if (values.get(0) instanceof TableLiteral literal && literal.entries.isEmpty()) out.println();
 
 
-            this.declare = targets.stream()
-                    .filter(target -> target instanceof VariableTarget)
-                    .map(target -> (VariableTarget) target)
-                    .anyMatch(target -> target.local.needsDeclaring && !d.currentState.definedLocals.contains(target.local));
+            this.declare = targets.stream().filter(target -> target instanceof VariableTarget).map(target -> (VariableTarget) target).anyMatch(target -> target.local.needsDeclaring && !d.currentState.definedLocals.contains(target.local));
 
-            if (declare)
-                out.print("local ");
+            if (declare) out.print("local ");
 
             var functionSugar = isFunctionSugar();
             if (!functionSugar) {
@@ -195,10 +189,8 @@ public class AssignmentStatement extends Statement {
                 out.print(comment);
             }
 
-            if (declare) targets.stream()
-                    .filter(target -> target instanceof VariableTarget)
-                    .map(target -> (VariableTarget) target)
-                    .forEach(variableTarget -> d.currentState.definedLocals.add(variableTarget.local));
+            if (declare)
+                targets.stream().filter(target -> target instanceof VariableTarget).map(target -> (VariableTarget) target).forEach(variableTarget -> d.currentState.definedLocals.add(variableTarget.local));
         }
     }
 
@@ -234,27 +226,46 @@ public class AssignmentStatement extends Statement {
     @Override
     public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
         if (includeAssignments)
-            targets.stream()
-                    .filter(target -> target instanceof VariableTarget)
-                    .map(target -> (VariableTarget) target)
-                    .forEach(variableTarget -> localUsageMap.put(variableTarget.local, true));
+            targets.stream().filter(target -> target instanceof VariableTarget).map(target -> (VariableTarget) target).forEach(variableTarget -> localUsageMap.put(variableTarget.local, true));
 
         values.forEach(expression -> {
-            if (!(expression instanceof LocalVariable))  // Most likely useless reassignment that will get inlined later
+            if (!(expression instanceof LocalVariable)) { // LocalVariable are Most likely useless reassignment that will get inlined later
+                targets.stream().filter(target -> target instanceof VariableTarget).map(target -> (VariableTarget) target).forEach(variableTarget -> localUsageMap.put(variableTarget.local, true));
                 expression.fillUsageMap(localUsageMap, includeAssignments);
+            }
         });
     }
 
     @Override
-    public void remapLocals(Map<Local, Local> localRemaps) {
-        values.forEach(expression -> expression.remapLocals(localRemaps));
+    public void remapLocals(Map<Local, Local> localRemaps, Map<Local, Local> lastLocalRemaps) {
+        values.forEach(expression -> expression.remapLocals(lastLocalRemaps));
 
-        targets.stream()
-                .filter(target -> target instanceof VariableTarget)
-                .map(target -> (VariableTarget) target)
-                .forEach(variableTarget -> {
-                    var local = variableTarget.local;
-                    if (localRemaps.containsKey(local)) variableTarget.local = localRemaps.get(local);
-                });
+        targets.stream().filter(target -> target instanceof VariableTarget).map(target -> (VariableTarget) target).forEach(variableTarget -> {
+            var local = variableTarget.local;
+            if (localRemaps.containsKey(local)) variableTarget.local = localRemaps.get(local);
+        });
+    }
+
+    @Override
+    public boolean isActionStatement() {
+        if (values.size() > 1) return false; // I don't have a plan for these honestly
+        return values.get(0) instanceof BinaryExpression || values.get(0) instanceof FunctionCall;
+    }
+
+    @Override
+    public List<Local> getActionVars() {
+        return values.get(0).getLocals();
+    }
+
+    @Override
+    public void inlineLocal(Local local, Expression statement) {
+        for (var value : values) {
+            value.inlineLocal(local, statement);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "AssignmentStatement{" + "targets=" + targets + ", values=" + values + '}';
     }
 }

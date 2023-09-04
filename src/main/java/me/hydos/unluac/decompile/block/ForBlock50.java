@@ -1,7 +1,7 @@
 package me.hydos.unluac.decompile.block;
 
-import me.hydos.unluac.decompile.CloseType;
-import me.hydos.unluac.decompile.Registers;
+import me.hydos.unluac.decompile.core.CloseType;
+import me.hydos.unluac.decompile.core.Registers;
 import me.hydos.unluac.bytecode.BFunction;
 
 public class ForBlock50 extends ForBlock {

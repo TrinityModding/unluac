@@ -1,6 +1,6 @@
 package me.hydos.unluac.assemble;
 
-import me.hydos.unluac.decompile.Output;
+import me.hydos.unluac.decompile.core.Output;
 import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.bytecode.LHeader;
 

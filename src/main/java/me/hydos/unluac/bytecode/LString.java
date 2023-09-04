@@ -1,6 +1,6 @@
 package me.hydos.unluac.bytecode;
 
-import me.hydos.unluac.decompile.PrintFlag;
+import me.hydos.unluac.decompile.core.PrintFlag;
 import me.hydos.unluac.util.StringUtils;
 
 public class LString extends LObject {

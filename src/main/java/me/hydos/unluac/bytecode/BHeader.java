@@ -4,9 +4,9 @@ import me.hydos.unluac.Configuration;
 import me.hydos.unluac.Configuration.Mode;
 import me.hydos.unluac.Version;
 import me.hydos.unluac.assemble.Tokenizer;
-import me.hydos.unluac.decompile.BytecodeDecoder;
-import me.hydos.unluac.decompile.Op;
-import me.hydos.unluac.decompile.OpcodeMap;
+import me.hydos.unluac.decompile.core.BytecodeDecoder;
+import me.hydos.unluac.decompile.core.Op;
+import me.hydos.unluac.decompile.core.OpcodeMap;
 
 import java.io.File;
 import java.io.FileInputStream;

@@ -1,4 +1,4 @@
-package me.hydos.unluac.decompile;
+package me.hydos.unluac.decompile.core;
 
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.statement.Statement;

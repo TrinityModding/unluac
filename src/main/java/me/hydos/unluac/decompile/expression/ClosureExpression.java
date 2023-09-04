@@ -1,9 +1,9 @@
 package me.hydos.unluac.decompile.expression;
 
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Local;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Local;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.Walker;
 import me.hydos.unluac.decompile.target.TableTarget;
 import me.hydos.unluac.decompile.target.Target;
 import me.hydos.unluac.decompile.target.VariableTarget;
@@ -29,7 +29,7 @@ public class ClosureExpression extends Expression {
 
     @Override
     public void print(Decompiler outer, Output out) {
-        var d = new Decompiler(function, outer.locals, upvalueLine);
+        var d = new Decompiler(function, outer.locals, upvalueLine, outer.currentState);
         out.print("function");
         printMain(out, d, true);
     }
@@ -71,7 +71,7 @@ public class ClosureExpression extends Expression {
 
     @Override
     public void printClosure(Decompiler decompiler, Output out, Target name) {
-        var d = new Decompiler(function, decompiler.locals, upvalueLine);
+        var d = new Decompiler(function, decompiler.locals, upvalueLine, decompiler.currentState);
         out.print("function ");
         if (function.paramCount >= 1 && d.locals.get(0).name.equals("self") && name instanceof TableTarget) {
             name.printMethod(decompiler, out);

@@ -1,20 +1,22 @@
 package me.hydos.unluac.decompile.expression;
 
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Local;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Local;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.Walker;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 public class LocalVariable extends Expression {
 
-    public Local decl;
+    public Local local;
 
-    public LocalVariable(Local decl) {
+    public LocalVariable(Local local) {
         super(PRECEDENCE_ATOMIC);
-        this.decl = decl;
+        this.local = local;
     }
 
     @Override
@@ -24,7 +26,7 @@ public class LocalVariable extends Expression {
 
     @Override
     public void print(Decompiler d, Output out) {
-        out.print(decl.name);
+        out.print(local.name);
     }
 
     @Override
@@ -44,12 +46,22 @@ public class LocalVariable extends Expression {
 
     @Override
     public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
-        localUsageMap.put(decl, true);
+        localUsageMap.put(local, true);
     }
 
     @Override
     public void remapLocals(Map<Local, Local> localRemaps) {
-        if (localRemaps.containsKey(decl)) this.decl = localRemaps.get(decl);
+        if (localRemaps.containsKey(local)) this.local = localRemaps.get(local);
+    }
+
+    @Override
+    public List<Local> getLocals() {
+        return Collections.singletonList(local);
+    }
+
+    @Override
+    public void inlineLocal(Local local, Expression statement) {
+        // Too deep to inline. Getting here is just a result of a deep search don't worry
     }
 
     @Override
@@ -57,16 +69,16 @@ public class LocalVariable extends Expression {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         var that = (LocalVariable) o;
-        return Objects.equals(decl, that.decl);
+        return Objects.equals(local, that.local);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(decl);
+        return Objects.hash(local);
     }
 
     @Override
     public String toString() {
-        return "LocalVariable{" + "local=" + decl.name + '}';
+        return "LocalVariable{" + "local=" + local.name + '}';
     }
 }

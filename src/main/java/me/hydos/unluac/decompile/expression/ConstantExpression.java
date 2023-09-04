@@ -3,6 +3,7 @@ package me.hydos.unluac.decompile.expression;
 import me.hydos.unluac.decompile.*;
 import me.hydos.unluac.bytecode.LBoolean;
 import me.hydos.unluac.bytecode.LNil;
+import me.hydos.unluac.decompile.core.*;
 
 import java.util.Map;
 import java.util.Objects;
@@ -125,9 +126,11 @@ public class ConstantExpression extends Expression {
         return !constant.isString() || constant.asName().length() <= 10;
     }
 
-
     @Override
     public void remapLocals(Map<Local, Local> localRemaps) {}
+
+    @Override
+    public void inlineLocal(Local local, Expression statement) {}
 
     @Override
     public boolean equals(Object o) {

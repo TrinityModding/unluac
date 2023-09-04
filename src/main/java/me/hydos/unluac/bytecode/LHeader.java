@@ -1,6 +1,6 @@
 package me.hydos.unluac.bytecode;
 
-import me.hydos.unluac.decompile.BytecodeDecoder;
+import me.hydos.unluac.decompile.core.BytecodeDecoder;
 
 public class LHeader extends BObject {
 

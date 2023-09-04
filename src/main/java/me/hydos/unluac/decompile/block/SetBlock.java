@@ -1,8 +1,8 @@
 package me.hydos.unluac.decompile.block;
 
 import me.hydos.unluac.bytecode.BFunction;
-import me.hydos.unluac.decompile.*;
 import me.hydos.unluac.decompile.condition.Condition;
+import me.hydos.unluac.decompile.core.*;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.operation.Operation;
 import me.hydos.unluac.decompile.statement.AssignmentStatement;
@@ -135,8 +135,8 @@ public class SetBlock extends Block {
     }
 
     @Override
-    public void remapLocals(Map<Local, Local> localRemaps) {
-        if (assign != null) assign.remapLocals(localRemaps);
+    public void remapLocals(Map<Local, Local> localRemaps, Map<Local, Local> lastLocalRemaps) {
+        if (assign != null) assign.remapLocals(localRemaps, lastLocalRemaps);
     }
 
     @Override

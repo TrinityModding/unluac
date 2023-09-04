@@ -1,4 +1,4 @@
-package me.hydos.unluac.decompile;
+package me.hydos.unluac.decompile.core;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import me.hydos.unluac.Version;
@@ -8,6 +8,7 @@ import me.hydos.unluac.decompile.block.DoEndBlock;
 import me.hydos.unluac.decompile.block.OuterBlock;
 import me.hydos.unluac.decompile.expression.*;
 import me.hydos.unluac.decompile.operation.*;
+import me.hydos.unluac.decompile.pattern.PatternFixer;
 import me.hydos.unluac.decompile.statement.AssignmentStatement;
 import me.hydos.unluac.decompile.statement.Label;
 import me.hydos.unluac.decompile.statement.Statement;
@@ -33,7 +34,7 @@ public class Decompiler {
     public final boolean isUpper;
     public State currentState;
 
-    public Decompiler(BFunction target, List<Local> parentLocals, int startLine) {
+    public Decompiler(BFunction target, List<Local> parentLocals, int startLine, State currentState) {
         this.isUpper = parentLocals == null;
         this.bytecode = target;
         this.reader = new BytecodeReader(bytecode);
@@ -48,6 +49,7 @@ public class Decompiler {
         this.locals = readDecls();
         this.deadLocals = new ArrayList<>();
         this.bytecodeQuery = new FunctionQuery(bytecode);
+        this.currentState = currentState;
     }
 
     private List<Local> readDecls() {
@@ -62,7 +64,7 @@ public class Decompiler {
             decls.add(new Local("arg", 0, scopeEnd));
 
         for (var i = normalDeclLength; i < bytecode.maximumStackSize; i++)
-            decls.add(new Local("L" + i + "_" + bytecode.depth, 0, scopeEnd));
+            decls.add(new Local("var" + bytecode.depth + "_" + i, 0, scopeEnd));
 
         return decls;
     }
@@ -78,7 +80,8 @@ public class Decompiler {
         // 2nd pass state
         public final List<Local> definedLocals = new ArrayList<>();
         public final Map<Local, Boolean> localUsed = new Object2ObjectArrayMap<>();
-        public final Map<Local, Local> localRemaps = new Object2ObjectArrayMap<>();
+        public Map<Local, Local> lastLocalRemaps = new Object2ObjectArrayMap<>();
+        public Map<Local, Local> localRemaps = new Object2ObjectArrayMap<>();
     }
 
     public State getResult() {
@@ -109,8 +112,8 @@ public class Decompiler {
     public void writeResult(State state, Output out) {
         this.currentState = state;
         highLevelWalkFix(state);
-
         handleInitialLocals(state, out);
+
         state.outer.print(this, out);
     }
 

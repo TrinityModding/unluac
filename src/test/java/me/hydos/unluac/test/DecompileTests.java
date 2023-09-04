@@ -4,8 +4,6 @@ import me.hydos.unluac.Configuration;
 import me.hydos.unluac.Main;
 import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.bytecode.BHeader;
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Output;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.ThrowingConsumer;
@@ -26,7 +24,8 @@ class DecompileTests {
     private static final List<String> TESTS = List.of(
 //            "class",
 //            "jump01"
-            "assignmentTests"
+//            "assignmentTests"
+            "action1"
     );
 
     @TestFactory

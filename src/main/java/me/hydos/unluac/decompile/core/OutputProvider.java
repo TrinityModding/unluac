@@ -1,4 +1,4 @@
-package me.hydos.unluac.decompile;
+package me.hydos.unluac.decompile.core;
 
 public interface OutputProvider {
 

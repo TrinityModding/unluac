@@ -1,6 +1,7 @@
 package me.hydos.unluac.decompile.statement;
 
-import me.hydos.unluac.decompile.*;
+import me.hydos.unluac.decompile.core.*;
+import me.hydos.unluac.decompile.expression.Expression;
 
 import java.util.List;
 import java.util.Map;
@@ -50,5 +51,17 @@ abstract public class Statement {
 
     public abstract void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments);
 
-    public abstract void remapLocals(Map<Local, Local> localRemaps);
+    public abstract void remapLocals(Map<Local, Local> localRemaps, Map<Local, Local> lastLocalRemaps);
+
+    public boolean isActionStatement() {
+        return false;
+    }
+
+    public List<Local> getActionVars() {
+        throw new IllegalStateException(getClass().getSimpleName());
+    }
+
+    public void inlineLocal(Local local, Expression statement) {
+        throw new IllegalStateException(getClass().getSimpleName());
+    }
 }

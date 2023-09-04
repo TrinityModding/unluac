@@ -2,7 +2,7 @@ package me.hydos.unluac.bytecode;
 
 import me.hydos.unluac.Version;
 import me.hydos.unluac.assemble.Directive;
-import me.hydos.unluac.decompile.BytecodeDecoder;
+import me.hydos.unluac.decompile.core.BytecodeDecoder;
 
 import java.io.IOException;
 import java.io.OutputStream;

@@ -1,9 +1,9 @@
 package me.hydos.unluac.decompile.expression;
 
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Local;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Local;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.Walker;
 import me.hydos.unluac.decompile.target.Target;
 
 import java.util.List;
@@ -249,6 +249,14 @@ abstract public class Expression {
 
     public boolean isEnvironmentTable(Decompiler d) {
         return false;
+    }
+
+    public List<Local> getLocals() {
+        throw new IllegalStateException(getClass().getSimpleName());
+    }
+
+    public void inlineLocal(Local local, Expression statement) {
+        throw new IllegalStateException(getClass().getSimpleName());
     }
 
     public enum BinaryOperation {

@@ -13,7 +13,7 @@
 .lastlinedefined	0
 .numparams	0
 .is_vararg	1
-.maxstacksize	5
+.maxstacksize	6
 
 .upvalue	"_ENV"	0	true
 
@@ -42,7 +42,8 @@ move          r1    r2
 move          r2    r1
 geti          r3    r0     1
 geti          r4    r0     1
-call          r2     3     2
+loadi         r5     7
+call          r2     4     2
 move          r1    r2
 return        r2     1     1     0
 
@@ -50,38 +51,57 @@ return        r2     1     1     0
 
 .source	null
 .linedefined	11
-.lastlinedefined	21
-.numparams	2
+.lastlinedefined	30
+.numparams	3
 .is_vararg	0
-.maxstacksize	8
+.maxstacksize	9
 
 .upvalue	null	0	false
 
-.constant	k0	" and "
-.constant	k1	"print"
-.constant	k2	"This gets used twice "
-.constant	k3	L"This is a weird function, right? AnArray[1] = "
+.constant	k0	"print"
+.constant	k1	"x is less than 10"
+.constant	k2	"value3 < 32767"
+.constant	k3	" and "
+.constant	k4	"This gets used twice "
+.constant	k5	L"This is a weird function, right? AnArray[1] = "
 
-move          r2    r0
-loadk         r3    k0 ; k0 = " and "
-move          r4    r1
-concat        r2     3
-gettabup      r3    u0    k1 ; k1 = "print"
-loadk         r4    k2 ; k2 = "This gets used twice" (truncated)
-move          r5    r2
-concat        r4     2
+.label	l1
+lti           r2    10     0     0
+jmp           l9
+gettabup      r3    u0    k0 ; k0 = "print"
+loadk         r4    k1 ; k1 = "x is less than 10"
 call          r3     2     1
-loadi         r3     0
-loadi         r3     3
-loadi         r3    10
-loadi         r4     2
-move          r3    r4
-gettabup      r5    u0    k1 ; k1 = "print"
-loadk         r6    k3 ; k3 = L"This is a weird func" (truncated)
-move          r7    r0
-concat        r6     2
-call          r5     2     1
-loadi         r5     5
-return1       r5     2     0     0
-return0       r5     1     0     0
+addi          r2    r2     1
+mmbini        r2     1     6     0
+jmp           l1
+.label	l9
+loadi         r3 32767
+lt            r2    r3     0     0
+jmp          l15
+gettabup      r3    u0    k0 ; k0 = "print"
+loadk         r4    k2 ; k2 = "value3 < 32767"
+call          r3     2     1
+.label	l15
+move          r3    r0
+loadk         r4    k3 ; k3 = " and "
+move          r5    r1
+concat        r3     3
+gettabup      r4    u0    k0 ; k0 = "print"
+loadk         r5    k4 ; k4 = "This gets used twice" (truncated)
+move          r6    r3
+concat        r5     2
+call          r4     2     1
+loadi         r4     0
+loadi         r4     3
+loadi         r4    10
+loadi         r5     2
+move          r4    r5
+gettabup      r6    u0    k0 ; k0 = "print"
+loadk         r7    k5 ; k5 = L"This is a weird func" (truncated)
+move          r8    r0
+concat        r7     2
+call          r6     2     1
+loadi         r6     5
+return1       r6     2     0     0
+return0       r6     1     0     0
 

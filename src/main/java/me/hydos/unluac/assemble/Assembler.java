@@ -2,9 +2,9 @@ package me.hydos.unluac.assemble;
 
 import me.hydos.unluac.Configuration;
 import me.hydos.unluac.Version;
-import me.hydos.unluac.decompile.BytecodeDecoder;
-import me.hydos.unluac.decompile.Op;
-import me.hydos.unluac.decompile.OpcodeMap;
+import me.hydos.unluac.decompile.core.BytecodeDecoder;
+import me.hydos.unluac.decompile.core.Op;
+import me.hydos.unluac.decompile.core.OpcodeMap;
 import me.hydos.unluac.bytecode.*;
 import me.hydos.unluac.bytecode.LNumberType.NumberMode;
 import me.hydos.unluac.util.StringUtils;

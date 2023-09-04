@@ -1,9 +1,9 @@
 package me.hydos.unluac.decompile.expression;
 
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Local;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Local;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.Walker;
 
 import java.util.Map;
 import java.util.Objects;
@@ -97,5 +97,11 @@ public class TableReference extends Expression {
     public void remapLocals(Map<Local, Local> localRemaps) {
         table.remapLocals(localRemaps);
         index.remapLocals(localRemaps);
+    }
+
+    @Override
+    public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
+        table.fillUsageMap(localUsageMap, includeAssignments);
+        index.fillUsageMap(localUsageMap, includeAssignments);
     }
 }

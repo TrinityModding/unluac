@@ -1,6 +1,6 @@
 package me.hydos.unluac.decompile.operation;
 
-import me.hydos.unluac.decompile.Registers;
+import me.hydos.unluac.decompile.core.Registers;
 import me.hydos.unluac.decompile.block.Block;
 import me.hydos.unluac.decompile.expression.ConstantExpression;
 import me.hydos.unluac.decompile.expression.Expression;

@@ -1,6 +1,6 @@
 package me.hydos.unluac.decompile.block;
 
-import me.hydos.unluac.decompile.*;
+import me.hydos.unluac.decompile.core.*;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.decompile.target.Target;

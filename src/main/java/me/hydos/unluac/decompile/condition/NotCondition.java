@@ -1,6 +1,6 @@
 package me.hydos.unluac.decompile.condition;
 
-import me.hydos.unluac.decompile.Registers;
+import me.hydos.unluac.decompile.core.Registers;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.expression.UnaryExpression;
 

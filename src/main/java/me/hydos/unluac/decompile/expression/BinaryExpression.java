@@ -1,10 +1,12 @@
 package me.hydos.unluac.decompile.expression;
 
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Local;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Local;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.Walker;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class BinaryExpression extends Expression {
@@ -79,5 +81,21 @@ public class BinaryExpression extends Expression {
     public void remapLocals(Map<Local, Local> localRemaps) {
         left.remapLocals(localRemaps);
         right.remapLocals(localRemaps);
+    }
+
+    @Override
+    public List<Local> getLocals() {
+        var locals = new ArrayList<Local>();
+        locals.addAll(left.getLocals());
+        locals.addAll(right.getLocals());
+        return locals;
+    }
+
+    @Override
+    public void inlineLocal(Local local, Expression statement) {
+        if (left instanceof LocalVariable lvar && lvar.local.equals(local)) left = statement;
+        if (right instanceof LocalVariable lvar && lvar.local.equals(local)) right = statement;
+        left.inlineLocal(local, statement);
+        right.inlineLocal(local, statement);
     }
 }

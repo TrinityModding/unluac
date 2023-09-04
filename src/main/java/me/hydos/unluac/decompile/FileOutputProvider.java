@@ -1,5 +1,7 @@
 package me.hydos.unluac.decompile;
 
+import me.hydos.unluac.decompile.core.OutputProvider;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 

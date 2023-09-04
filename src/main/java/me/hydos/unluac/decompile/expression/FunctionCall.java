@@ -1,9 +1,9 @@
 package me.hydos.unluac.decompile.expression;
 
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Local;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Local;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.Walker;
 
 import java.util.*;
 
@@ -98,6 +98,13 @@ public class FunctionCall extends Expression {
 
     private boolean isMethodCall() {
         return function.isMemberAccess() && arguments.length > 0 && function.getTable() == arguments[0];
+    }
+
+    @Override
+    public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
+        function.fillUsageMap(localUsageMap, includeAssignments);
+        for (var argument : arguments)
+            argument.fillUsageMap(localUsageMap, includeAssignments);
     }
 
     @Override

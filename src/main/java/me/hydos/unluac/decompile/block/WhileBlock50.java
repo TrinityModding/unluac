@@ -1,6 +1,6 @@
 package me.hydos.unluac.decompile.block;
 
-import me.hydos.unluac.decompile.CloseType;
+import me.hydos.unluac.decompile.core.CloseType;
 import me.hydos.unluac.decompile.condition.Condition;
 import me.hydos.unluac.bytecode.BFunction;
 

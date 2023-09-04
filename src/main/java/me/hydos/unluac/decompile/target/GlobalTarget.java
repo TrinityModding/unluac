@@ -1,8 +1,8 @@
 package me.hydos.unluac.decompile.target;
 
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.Walker;
 import me.hydos.unluac.decompile.expression.ConstantExpression;
 import me.hydos.unluac.decompile.expression.Expression;
 

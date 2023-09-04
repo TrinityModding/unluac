@@ -1,7 +1,7 @@
 package me.hydos.unluac;
 
-import me.hydos.unluac.decompile.Op;
-import me.hydos.unluac.decompile.OpcodeMap;
+import me.hydos.unluac.decompile.core.Op;
+import me.hydos.unluac.decompile.core.OpcodeMap;
 import me.hydos.unluac.bytecode.*;
 
 import java.util.HashSet;

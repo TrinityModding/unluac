@@ -1,6 +1,6 @@
 package me.hydos.unluac.bytecode;
 
-import me.hydos.unluac.decompile.PrintFlag;
+import me.hydos.unluac.decompile.core.PrintFlag;
 
 public abstract class LNumber extends LObject {
 

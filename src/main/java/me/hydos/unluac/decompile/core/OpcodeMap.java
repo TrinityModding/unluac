@@ -1,10 +1,9 @@
-package me.hydos.unluac.decompile;
+package me.hydos.unluac.decompile.core;
 
 import me.hydos.unluac.Version;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public class OpcodeMap {
 

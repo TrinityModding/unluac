@@ -1,9 +1,9 @@
 package me.hydos.unluac.decompile.block;
 
-import me.hydos.unluac.decompile.Decompiler;
-import me.hydos.unluac.decompile.Local;
-import me.hydos.unluac.decompile.Output;
-import me.hydos.unluac.decompile.Walker;
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Local;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.Walker;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.bytecode.BFunction;
 
@@ -73,7 +73,7 @@ public class Break extends Block {
     }
 
     @Override
-    public void remapLocals(Map<Local, Local> localRemaps) {}
+    public void remapLocals(Map<Local, Local> localRemaps, Map<Local, Local> lastLocalRemaps) {}
 
     @Override
     public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {}

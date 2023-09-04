@@ -1,5 +1,9 @@
 package me.hydos.unluac.decompile;
 
+import me.hydos.unluac.decompile.core.Decompiler;
+import me.hydos.unluac.decompile.core.Output;
+import me.hydos.unluac.decompile.core.OutputProvider;
+
 import java.util.function.BiConsumer;
 
 /**
