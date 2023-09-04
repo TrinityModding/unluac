@@ -33,6 +33,14 @@ public class AssignmentStatement extends Statement {
         allNil = value.isNil();
     }
 
+    @Override
+    public void lastUpdate(Decompiler d) {
+        targets.stream()
+                .filter(target -> target instanceof VariableTarget)
+                .map(target -> (VariableTarget) target)
+                .forEach(variableTarget -> d.deadLocals.add(variableTarget.local));
+    }
+
     public Target getFirstTarget() {
         return targets.get(0);
     }
@@ -248,8 +256,8 @@ public class AssignmentStatement extends Statement {
 
     @Override
     public boolean isActionStatement() {
-        if (values.size() > 1) return false; // I don't have a plan for these honestly
-        return values.get(0) instanceof BinaryExpression || values.get(0) instanceof FunctionCall;
+        return values.stream()
+                .anyMatch(expression -> expression instanceof BinaryExpression || expression instanceof FunctionCall);
     }
 
     @Override
@@ -259,9 +267,7 @@ public class AssignmentStatement extends Statement {
 
     @Override
     public void inlineLocal(Local local, Expression statement) {
-        for (var value : values) {
-            value.inlineLocal(local, statement);
-        }
+        for (var value : values) value.inlineLocal(local, statement);
     }
 
     @Override

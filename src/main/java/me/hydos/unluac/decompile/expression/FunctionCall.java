@@ -101,6 +101,28 @@ public class FunctionCall extends Expression {
     }
 
     @Override
+    public List<Local> getLocals() {
+        var locals = new ArrayList<>(function.getLocals());
+        locals.addAll(Arrays.stream(arguments).map(Expression::getLocals).flatMap(Collection::stream).toList());
+        return locals;
+    }
+
+    @Override
+    public void inlineLocal(Local local, Expression statement) {
+        if (function instanceof LocalVariable lvar && lvar.local.equals(local)) function = statement;
+        if (function instanceof UpvalueExpression up && up.name.equals(local.name)) function = statement;
+
+        for (int i = 0; i < arguments.length; i++) {
+            var argument = arguments[i];
+            if (argument instanceof LocalVariable lvar && lvar.local.equals(local)) arguments[i] = statement;
+            if (argument instanceof UpvalueExpression up && up.name.equals(local.name)) arguments[i] = statement;
+        }
+
+        function.inlineLocal(local, statement);
+        for (var argument : arguments) argument.inlineLocal(local, statement);
+    }
+
+    @Override
     public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
         function.fillUsageMap(localUsageMap, includeAssignments);
         for (var argument : arguments)

@@ -10,7 +10,7 @@ import java.util.Objects;
 
 public class UpvalueExpression extends Expression {
 
-    private String name;
+    public String name;
 
     public UpvalueExpression(String name) {
         super(PRECEDENCE_ATOMIC);
@@ -66,4 +66,10 @@ public class UpvalueExpression extends Expression {
             if (entry.getKey().name.equals(name)) this.name = entry.getValue().name;
         }
     }
+
+    @Override
+    public void inlineLocal(Local local, Expression statement) {
+        // Can't inline this deep.
+    }
 }
+

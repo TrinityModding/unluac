@@ -1,13 +1,17 @@
 package me.hydos.unluac.decompile.block;
 
+import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.decompile.core.*;
 import me.hydos.unluac.decompile.expression.Expression;
+import me.hydos.unluac.decompile.expression.LocalVariable;
 import me.hydos.unluac.decompile.statement.Statement;
 import me.hydos.unluac.decompile.target.Target;
-import me.hydos.unluac.bytecode.BFunction;
+import me.hydos.unluac.decompile.target.VariableTarget;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class TForBlock extends ContainerBlock {
 
@@ -183,4 +187,12 @@ public class TForBlock extends ContainerBlock {
         out.print("end");
     }
 
+    @Override
+    public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
+        Arrays.stream(targets).forEach(target -> {
+            if (target instanceof VariableTarget varTarget) localUsageMap.put(varTarget.local, true);
+        });
+
+        Arrays.stream(values).forEach(target -> target.fillUsageMap(localUsageMap, includeAssignments));
+    }
 }

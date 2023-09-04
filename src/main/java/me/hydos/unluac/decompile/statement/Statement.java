@@ -64,4 +64,9 @@ abstract public class Statement {
     public void inlineLocal(Local local, Expression statement) {
         throw new IllegalStateException(getClass().getSimpleName());
     }
+
+    /**
+     * One last update just before printing occurs
+     */
+    public void lastUpdate(Decompiler d) {}
 }

@@ -25,7 +25,8 @@ class DecompileTests {
 //            "class",
 //            "jump01"
 //            "assignmentTests"
-            "action1"
+//            "action1"
+            "action2"
     );
 
     @TestFactory

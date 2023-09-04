@@ -34,7 +34,7 @@ public class Decompiler {
     public final boolean isUpper;
     public State currentState;
 
-    public Decompiler(BFunction target, List<Local> parentLocals, int startLine, State currentState) {
+    public Decompiler(BFunction target, List<Local> parentLocals, List<Local> deadLocals, int startLine, State currentState) {
         this.isUpper = parentLocals == null;
         this.bytecode = target;
         this.reader = new BytecodeReader(bytecode);
@@ -48,6 +48,7 @@ public class Decompiler {
         this.vararg = bytecode.vararg;
         this.locals = readDecls();
         this.deadLocals = new ArrayList<>();
+        if(deadLocals != null) this.deadLocals.addAll(deadLocals);
         this.bytecodeQuery = new FunctionQuery(bytecode);
         this.currentState = currentState;
     }
@@ -104,7 +105,7 @@ public class Decompiler {
         for (var block : state.blocks) {
             if (block.hasStatements()) {
                 var originalCode = block.getStatements();
-                PatternFixer.rewriteStatements(this, state, originalCode);
+                PatternFixer.rewriteStatements(this, originalCode);
             }
         }
     }
@@ -118,6 +119,8 @@ public class Decompiler {
     }
 
     private void handleInitialLocals(State state, Output out) {
+        var initLocals = getInitialLocals();
+
         for (var block : state.blocks) {
             if (block.hasStatements()) {
                 var code = block.getStatements();
@@ -125,18 +128,18 @@ public class Decompiler {
                 // for defining locals cleanly
                 var localEverUsed = new Object2ObjectArrayMap<Local, Boolean>();
                 code.forEach(statement -> statement.fillUsageMap(localEverUsed, true));
-                var initLocals = getInitialLocals();
                 for (var entry : localEverUsed.entrySet()) if (entry.getValue()) initLocals.remove(entry.getKey());
-                if (!initLocals.isEmpty()) {
-                    out.print("local ");
-                    out.print(initLocals.get(0).name);
-                    for (var i = 1; i < initLocals.size(); i++) {
-                        out.print(", ");
-                        out.print(initLocals.get(i).name);
-                    }
-                    out.println();
-                }
             }
+        }
+
+        if (!initLocals.isEmpty()) {
+            out.print("local ");
+            out.print(initLocals.get(0).name);
+            for (var i = 1; i < initLocals.size(); i++) {
+                out.print(", ");
+                out.print(initLocals.get(i).name);
+            }
+            out.println();
         }
     }
 

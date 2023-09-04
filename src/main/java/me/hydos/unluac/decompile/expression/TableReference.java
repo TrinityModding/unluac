@@ -104,4 +104,14 @@ public class TableReference extends Expression {
         table.fillUsageMap(localUsageMap, includeAssignments);
         index.fillUsageMap(localUsageMap, includeAssignments);
     }
+
+    @Override
+    public void inlineLocal(Local local, Expression statement) {
+        if (table instanceof LocalVariable lvar && lvar.local.equals(local)) table = statement;
+        if (index instanceof LocalVariable lvar && lvar.local.equals(local)) index = statement;
+        if (table instanceof UpvalueExpression up && up.name.equals(local.name)) table = statement;
+        if (index instanceof UpvalueExpression up && up.name.equals(local.name)) index = statement;
+        table.inlineLocal(local, statement);
+        index.inlineLocal(local, statement);
+    }
 }

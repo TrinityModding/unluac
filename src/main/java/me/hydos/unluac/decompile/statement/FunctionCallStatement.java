@@ -6,6 +6,7 @@ import me.hydos.unluac.decompile.core.Output;
 import me.hydos.unluac.decompile.core.Walker;
 import me.hydos.unluac.decompile.expression.Expression;
 import me.hydos.unluac.decompile.expression.FunctionCall;
+import me.hydos.unluac.decompile.expression.LocalVariable;
 
 import java.util.*;
 
@@ -57,5 +58,10 @@ public class FunctionCallStatement extends Statement {
                 .flatMap(Collection::stream).toList()
         );
         return actions;
+    }
+
+    @Override
+    public void inlineLocal(Local local, Expression statement) {
+        call.inlineLocal(local, statement);
     }
 }

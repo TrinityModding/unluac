@@ -6,6 +6,8 @@ import me.hydos.unluac.decompile.expression.FunctionCall;
 import me.hydos.unluac.decompile.expression.LocalVariable;
 import me.hydos.unluac.decompile.statement.AssignmentStatement;
 import me.hydos.unluac.decompile.statement.Statement;
+import me.hydos.unluac.decompile.target.Target;
+import me.hydos.unluac.decompile.target.UpvalueTarget;
 import me.hydos.unluac.decompile.target.VariableTarget;
 
 import java.util.ArrayList;
@@ -67,21 +69,23 @@ public class PatternFixer {
         }
     }
 
-    public static void rewriteStatements(Decompiler decompiler, Decompiler.State state, List<Statement> code) {
-
-        // Inline "action" statements
-        // Example:
-        //  local svar2_0 = A0_2
-        //  local svar2_1 = " and " -- arg 1
-        //  local var2_5 = A1_2 -- arg 2
-        //  svar2_0 = svar2_0 .. svar2_1 .. var2_5 -- action statement
-        // should become
-        // svar2_0 = A0_2 .. " and " .. A1_2
+    public static void rewriteStatements(Decompiler decompiler, List<Statement> code) {
         for (var i = 0; i < code.size(); i++) {
             var statement = code.get(i);
 
+            // Used at the moment to remove pesky global locals sticking around.
+            statement.lastUpdate(decompiler);
+
+            // Inline "action" statements
+            // Example:
+            //  local svar2_0 = A0_2
+            //  local svar2_1 = " and " -- arg 1
+            //  local var2_5 = A1_2 -- arg 2
+            //  svar2_0 = svar2_0 .. svar2_1 .. var2_5 -- action statement
+            // should become
+            // svar2_0 = A0_2 .. " and " .. A1_2
             if (statement.isActionStatement())
-                handleActionStatement(statement, i, code, decompiler);
+                i = handleActionStatement(statement, i, code, decompiler);
         }
 
         // This loop cannot have unsafe backwards/forwards jumping, or it will break
@@ -125,7 +129,7 @@ public class PatternFixer {
 //        }
     }
 
-    private static void handleActionStatement(Statement statement, int statementIdx, List<Statement> code, Decompiler decompiler) {
+    private static int handleActionStatement(Statement statement, int statementIdx, List<Statement> code, Decompiler decompiler) {
         var actions = statement.getActionVars();
         var actionAssignStatements = new ArrayList<AssignmentStatement>(actions.size());
 
@@ -139,13 +143,12 @@ public class PatternFixer {
 
         for (var i = 0; i < actionAssignStatements.size(); i++) {
             var assignment = actionAssignStatements.get(i);
-            if (assignment.values.size() > 1)
-                throw new IllegalStateException(); // Safety: more than 1 local in an assignment is not handled correctly
             var local = actions.get(actions.size() - (1 + i));
             statement.inlineLocal(local, assignment.values.get(0));
             decompiler.deadLocals.add(((VariableTarget) assignment.targets.get(0)).local);
         }
 
         code.removeAll(actionAssignStatements);
+        return statementIdx - actionAssignStatements.size(); // Go x assignment many lines otherwise we will miss stuff
     }
 }

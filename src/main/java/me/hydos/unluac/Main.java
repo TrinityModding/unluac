@@ -73,7 +73,7 @@ public class Main {
                     } catch (IOException e) {
                         error(e.getMessage(), false);
                     }
-                    var d = new Decompiler(lmain, null, -1, null);
+                    var d = new Decompiler(lmain, null, null, -1, null);
                     var result = d.getResult();
                     d.writeResult(result, config.getOutput());
                 }
@@ -150,7 +150,7 @@ public class Main {
 
     public static void decompile(String in, String out, Configuration config) throws IOException {
         var lmain = file_to_function(in, config);
-        var d = new Decompiler(lmain, null, -1, null);
+        var d = new Decompiler(lmain, null, null, -1, null);
         var result = d.getResult();
         final var pout = new PrintStream(out);
         d.writeResult(result, new Output(new OutputProvider() {
