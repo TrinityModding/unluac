@@ -145,7 +145,8 @@ public class PatternFixer {
             var assignment = actionAssignStatements.get(i);
             var local = actions.get(actions.size() - (1 + i));
             statement.inlineLocal(local, assignment.values.get(0));
-            decompiler.deadLocals.add(((VariableTarget) assignment.targets.get(0)).local);
+            if(assignment.targets.get(0) instanceof VariableTarget varTarget)
+                decompiler.deadLocals.add((varTarget).local);
         }
 
         code.removeAll(actionAssignStatements);

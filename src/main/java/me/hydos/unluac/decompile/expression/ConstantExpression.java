@@ -5,6 +5,8 @@ import me.hydos.unluac.bytecode.LBoolean;
 import me.hydos.unluac.bytecode.LNil;
 import me.hydos.unluac.decompile.core.*;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -131,6 +133,11 @@ public class ConstantExpression extends Expression {
 
     @Override
     public void inlineLocal(Local local, Expression statement) {}
+
+    @Override
+    public List<Local> getLocals() {
+        return Collections.emptyList();
+    }
 
     @Override
     public boolean equals(Object o) {

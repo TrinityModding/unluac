@@ -22,10 +22,10 @@ class DecompileTests {
     private static final LuaSpec COMPILER_SPEC = new LuaSpec(0x54, true);
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
     private static final List<String> TESTS = List.of(
-//            "class",
-//            "jump01"
-//            "assignmentTests"
-//            "action1"
+            "class",
+            "jump01",
+            "assignmentTests",
+            "action1",
             "action2"
     );
 

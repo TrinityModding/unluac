@@ -175,6 +175,11 @@ public class TableLiteral extends Expression {
     }
 
     @Override
+    public void inlineLocal(Local local, Expression statement) {
+
+    }
+
+    @Override
     public void remapLocals(Map<Local, Local> localRemaps) {
         entries.forEach(entry -> {
             entry.key.remapLocals(localRemaps);
