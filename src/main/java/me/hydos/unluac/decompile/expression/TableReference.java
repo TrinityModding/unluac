@@ -108,11 +108,12 @@ public class TableReference extends Expression {
 
     @Override
     public void inlineLocal(Local local, Expression statement) {
+        if (statement == this) return;
+        if (table == this) return; // ???
         if (table instanceof LocalVariable lvar && lvar.local.equals(local)) table = statement;
         if (index instanceof LocalVariable lvar && lvar.local.equals(local)) index = statement;
         if (table instanceof UpvalueExpression up && up.name.equals(local.name)) table = statement;
         if (index instanceof UpvalueExpression up && up.name.equals(local.name)) index = statement;
-        if (table == this) return; // ???
         table.inlineLocal(local, statement);
         index.inlineLocal(local, statement);
     }

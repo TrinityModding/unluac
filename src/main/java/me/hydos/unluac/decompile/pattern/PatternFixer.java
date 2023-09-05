@@ -135,7 +135,10 @@ public class PatternFixer {
 
         for (var backwardsSearchIdx = 1; backwardsSearchIdx <= actions.size(); backwardsSearchIdx++) {
             var codeIdx = statementIdx - backwardsSearchIdx;
-            actionAssignStatements.add((AssignmentStatement) code.get(codeIdx));
+            if(codeIdx == -1) return statementIdx; // We don't have a real action statement
+            var line = code.get(codeIdx);
+            if(line instanceof AssignmentStatement assignmentStatement) actionAssignStatements.add(assignmentStatement);
+            else return statementIdx; // I'm not sure how this can happen
         }
 
         if (actions.size() != actionAssignStatements.size())
