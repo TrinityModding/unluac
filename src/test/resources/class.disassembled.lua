@@ -13,39 +13,31 @@
 .lastlinedefined	0
 .numparams	0
 .is_vararg	1
-.maxstacksize	3
+.maxstacksize	5
 
 .upvalue	"_ENV"	0	true
 
-.constant	k0	"TestClass"
-.constant	k1	"new"
-.constant	k2	"deposit"
-.constant	k3	"a"
-.constant	k4	"balance"
-.constant	k5	0
+.constant	k0	"new"
+.constant	k1	"deposit"
+.constant	k2	"balance"
+.constant	k3	0
 
 varargprep     0
 newtable      r0     0     0     0
 extraarg       0
-settabup      u0    k0    r0 ; k0 = "TestClass"
-gettabup      r0    u0    k0 ; k0 = "TestClass"
 closure       r1    f0
-setfield      r0    k1    r1 ; k1 = "new"
-gettabup      r0    u0    k0 ; k0 = "TestClass"
+setfield      r0    k0    r1 ; k0 = "new"
 closure       r1    f1
-setfield      r0    k2    r1 ; k2 = "deposit"
-gettabup      r0    u0    k0 ; k0 = "TestClass"
-self          r0    r0    k1 ; k1 = "new"
-newtable      r2     1     0     0
+setfield      r0    k1    r1 ; k1 = "deposit"
+self          r1    r0    k0 ; k0 = "new"
+newtable      r3     1     0     0
 extraarg       0
-setfield      r2    k4    k5 ; k5 = 0
-call          r0     3     2
-settabup      u0    k3    r0 ; k3 = "a"
-gettabup      r0    u0    k3 ; k3 = "a"
-self          r0    r0    k2 ; k2 = "deposit"
-loadf         r2   100
-call          r0     3     1
-return        r0     1     1     0
+setfield      r3    k2    k3 ; k3 = 0
+call          r1     3     2
+self          r2    r1    k1 ; k1 = "deposit"
+loadf         r4   100
+call          r2     3     1
+return        r2     1     1     0
 
 .function	main/f0
 

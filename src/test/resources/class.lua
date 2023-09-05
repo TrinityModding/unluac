@@ -1,4 +1,4 @@
-TestClass = {}
+local TestClass = {}
 
 function TestClass:new (o)
     o = o or {}
@@ -11,5 +11,5 @@ function TestClass:deposit (money)
     self.balance = self.balance + money
 end
 
-a = TestClass:new{balance = 0}
+local a = TestClass:new{balance = 0}
 a:deposit(100.0)
