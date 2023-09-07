@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "me.hydos.unluac"
@@ -17,6 +18,7 @@ repositories {
 
 dependencies {
     implementation("it.unimi.dsi:fastutil:8.5.12")
+    shadow("it.unimi.dsi:fastutil:8.5.12")
 
     testImplementation(platform("org.junit:junit-bom:5.9.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
@@ -31,4 +33,10 @@ tasks.withType<Jar> {
 tasks.test {
     useJUnitPlatform()
     maxHeapSize = "2G"
+}
+
+tasks {
+    build {
+        dependsOn(shadowJar)
+    }
 }
