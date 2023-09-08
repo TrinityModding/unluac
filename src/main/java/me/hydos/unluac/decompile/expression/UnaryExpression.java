@@ -5,6 +5,7 @@ import me.hydos.unluac.decompile.core.Local;
 import me.hydos.unluac.decompile.core.Output;
 import me.hydos.unluac.decompile.core.Walker;
 
+import java.util.List;
 import java.util.Map;
 
 public class UnaryExpression extends Expression {
@@ -45,5 +46,16 @@ public class UnaryExpression extends Expression {
     @Override
     public void remapLocals(Map<Local, Local> localRemaps) {
         expression.remapLocals(localRemaps);
+    }
+
+    @Override
+    public void inlineLocal(Local local, Expression statement, Expression src) {
+        if (expression == statement) return;
+        expression.inlineLocal(local, statement, src);
+    }
+
+    @Override
+    public List<Local> getLocals() {
+        return expression.getLocals();
     }
 }

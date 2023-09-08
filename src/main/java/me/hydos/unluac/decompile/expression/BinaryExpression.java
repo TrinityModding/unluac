@@ -92,10 +92,11 @@ public class BinaryExpression extends Expression {
     }
 
     @Override
-    public void inlineLocal(Local local, Expression statement) {
+    public void inlineLocal(Local local, Expression statement, Expression src) {
+        if (statement == this) return;
         if (left instanceof LocalVariable lvar && lvar.local.equals(local)) left = statement;
         if (right instanceof LocalVariable lvar && lvar.local.equals(local)) right = statement;
-        left.inlineLocal(local, statement);
-        right.inlineLocal(local, statement);
+        left.inlineLocal(local, statement, this);
+        right.inlineLocal(local, statement, this);
     }
 }

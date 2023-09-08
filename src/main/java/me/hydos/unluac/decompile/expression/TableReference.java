@@ -5,6 +5,8 @@ import me.hydos.unluac.decompile.core.Local;
 import me.hydos.unluac.decompile.core.Output;
 import me.hydos.unluac.decompile.core.Walker;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -100,21 +102,30 @@ public class TableReference extends Expression {
     }
 
     @Override
+    public List<Local> getLocals() {
+        var locals = new ArrayList<>(table.getLocals());
+        locals.addAll(index.getLocals());
+        return locals;
+    }
+
+    @Override
     public void fillUsageMap(Map<Local, Boolean> localUsageMap, boolean includeAssignments) {
         if (table == this) return; // ???
+        if (index == this) return; // ???
         table.fillUsageMap(localUsageMap, includeAssignments);
         index.fillUsageMap(localUsageMap, includeAssignments);
     }
 
     @Override
-    public void inlineLocal(Local local, Expression statement) {
+    public void inlineLocal(Local local, Expression statement, Expression src) {
         if (statement == this) return;
         if (table == this) return; // ???
-        if (table instanceof LocalVariable lvar && lvar.local.equals(local)) table = statement;
-        if (index instanceof LocalVariable lvar && lvar.local.equals(local)) index = statement;
+        if (index == this) return; // ???
+        if (table instanceof LocalVariable lvar && lvar.local.equals(local) && !(statement instanceof FunctionCall)) table = statement;
+        if (index instanceof LocalVariable lvar && lvar.local.equals(local) && !(statement instanceof FunctionCall)) index = statement;
         if (table instanceof UpvalueExpression up && up.name.equals(local.name)) table = statement;
         if (index instanceof UpvalueExpression up && up.name.equals(local.name)) index = statement;
-        table.inlineLocal(local, statement);
-        index.inlineLocal(local, statement);
+        table.inlineLocal(local, statement, this);
+        index.inlineLocal(local, statement, this);
     }
 }

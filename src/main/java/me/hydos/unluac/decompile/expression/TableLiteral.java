@@ -175,7 +175,7 @@ public class TableLiteral extends Expression {
     }
 
     @Override
-    public void inlineLocal(Local local, Expression statement) {
+    public void inlineLocal(Local local, Expression statement, Expression src) {
 
     }
 

@@ -255,7 +255,7 @@ abstract public class Expression {
         throw new IllegalStateException(getClass().getSimpleName());
     }
 
-    public void inlineLocal(Local local, Expression statement) {
+    public void inlineLocal(Local local, Expression statement, Expression src) {
         throw new IllegalStateException(getClass().getSimpleName());
     }
 

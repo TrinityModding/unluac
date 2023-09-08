@@ -60,7 +60,7 @@ public class LocalVariable extends Expression {
     }
 
     @Override
-    public void inlineLocal(Local local, Expression statement) {
+    public void inlineLocal(Local local, Expression statement, Expression src) {
         // Too deep to inline. Getting here is just a result of a deep search don't worry
     }
 

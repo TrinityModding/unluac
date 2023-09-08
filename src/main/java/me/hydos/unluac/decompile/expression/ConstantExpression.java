@@ -132,7 +132,7 @@ public class ConstantExpression extends Expression {
     public void remapLocals(Map<Local, Local> localRemaps) {}
 
     @Override
-    public void inlineLocal(Local local, Expression statement) {}
+    public void inlineLocal(Local local, Expression statement, Expression src) {}
 
     @Override
     public List<Local> getLocals() {

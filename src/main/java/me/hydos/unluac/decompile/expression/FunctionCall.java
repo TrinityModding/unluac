@@ -108,7 +108,9 @@ public class FunctionCall extends Expression {
     }
 
     @Override
-    public void inlineLocal(Local local, Expression statement) {
+    public void inlineLocal(Local local, Expression statement, Expression src) {
+        if (function == statement) return;
+        if (statement == this) return;
         if (function instanceof LocalVariable lvar && lvar.local.equals(local)) function = statement;
         if (function instanceof UpvalueExpression up && up.name.equals(local.name)) function = statement;
 
@@ -118,8 +120,8 @@ public class FunctionCall extends Expression {
             if (argument instanceof UpvalueExpression up && up.name.equals(local.name)) arguments[i] = statement;
         }
 
-        function.inlineLocal(local, statement);
-        for (var argument : arguments) argument.inlineLocal(local, statement);
+        function.inlineLocal(local, statement, this);
+        for (var argument : arguments) argument.inlineLocal(local, statement, this);
     }
 
     @Override

@@ -17,9 +17,8 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-@Deprecated // FIXME: combination of logic and CLI handling. Tisk tisk...
 public class Main {
-    public static final String VERSION = "1.2.3.511";
+    public static final String VERSION = "2.0.0-SNAPSHOT";
 
     public static void main(String[] args) {
         String fn = null;
@@ -134,7 +133,7 @@ public class Main {
     }
 
     private static void print_unluac_string(PrintStream out) {
-        out.println("unluac v" + VERSION);
+        out.println("UnLuaC " + VERSION);
     }
 
     private static void print_usage(PrintStream out) {

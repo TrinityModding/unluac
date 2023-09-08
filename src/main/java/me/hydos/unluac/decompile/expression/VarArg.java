@@ -44,4 +44,7 @@ public class VarArg extends Expression {
 
     @Override
     public void remapLocals(Map<Local, Local> localRemaps) {}
+
+    @Override
+    public void inlineLocal(Local local, Expression statement, Expression src) {}
 }

@@ -1,5 +1,6 @@
 package me.hydos.unluac.decompile.expression;
 
+import me.hydos.unluac.bytecode.BFunction;
 import me.hydos.unluac.decompile.core.Decompiler;
 import me.hydos.unluac.decompile.core.Local;
 import me.hydos.unluac.decompile.core.Output;
@@ -7,8 +8,9 @@ import me.hydos.unluac.decompile.core.Walker;
 import me.hydos.unluac.decompile.target.TableTarget;
 import me.hydos.unluac.decompile.target.Target;
 import me.hydos.unluac.decompile.target.VariableTarget;
-import me.hydos.unluac.bytecode.BFunction;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class ClosureExpression extends Expression {
@@ -109,5 +111,15 @@ public class ClosureExpression extends Expression {
     }
 
     @Override
-    public void remapLocals(Map<Local, Local> localRemaps) {}
+    public void remapLocals(Map<Local, Local> localRemaps) {
+    }
+
+    @Override
+    public void inlineLocal(Local local, Expression statement, Expression src) {
+    }
+
+    @Override
+    public List<Local> getLocals() {
+        return Collections.emptyList();
+    }
 }

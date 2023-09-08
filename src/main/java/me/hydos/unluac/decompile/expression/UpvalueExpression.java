@@ -5,6 +5,8 @@ import me.hydos.unluac.decompile.core.Local;
 import me.hydos.unluac.decompile.core.Output;
 import me.hydos.unluac.decompile.core.Walker;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -68,7 +70,12 @@ public class UpvalueExpression extends Expression {
     }
 
     @Override
-    public void inlineLocal(Local local, Expression statement) {
+    public List<Local> getLocals() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void inlineLocal(Local local, Expression statement, Expression src) {
         // Can't inline this deep.
     }
 }

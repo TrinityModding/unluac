@@ -267,7 +267,7 @@ public class AssignmentStatement extends Statement {
 
     @Override
     public void inlineLocal(Local local, Expression statement) {
-        for (var value : values) value.inlineLocal(local, statement);
+        for (var value : values) value.inlineLocal(local, statement, null);
     }
 
     @Override
